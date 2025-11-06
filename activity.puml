@@ -1,27 +1,143 @@
 @startuml
-'https://plantuml.com/class-diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam nodesep 70
+skinparam ranksep 70
+skinparam linetype ortho
 
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
+package "Pega Platform - Activity Architecture" {
 
-List <|-- AbstractList
-Collection <|-- AbstractCollection
+    ' === Gói 1: Lớp cơ sở (Base Types) ===
+    package "Common Base Types" {
+        abstract class Parameter {
+          + pyName: String
+        }
+    }
 
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
+    ' === Gói 2: Lõi Activity (Activity Core) ===
+    package "Activity Core" {
+        class RuleObjActivity {
+          + pyLabel: String
+          + pyActivityType: String
+          + Steps: ActivityStep[]
+          + Parameters: ActivityParameter[]
+          + LocalVariables: ActivityLocalVariable[]
+        }
 
-class ArrayList {
-Object[] elementData
-size()
+        class ActivityStep {
+          + pyStepNumber: Integer
+          + pyStepLabel: String
+          + pyStepPage: String
+          + Method: AbstractMethod
+          + Precondition: WhenConditionAdvanced
+          + Transition: StepTransition[]
+          + Iteration: AbstractIteration
+        }
+
+        class ActivityLocalVariable {
+          + pyLocalVariableName: String
+          + pyLocalVariableType: String
+        }
+
+        class ActivityParameter extends Parameter {
+          + pyParameterType: String
+          + pyIsInput: Boolean
+          + pyIsOutput: Boolean
+        }
+
+        class StepTransition {
+          + pyTransitionType: String
+          + pyTransitionAction: String
+          + pyJumpToStep: String
+          + JumpCondition: RuleObjWhen
+        }
+    }
+
+    ' === Gói 3: Định nghĩa Method (Method Definition) ===
+    package "Method Definition" {
+        abstract class AbstractMethod {
+          + pyMethodName: String
+          + MethodParameters: StepMethodParameter[]
+        }
+
+        class StepMethodParameter extends Parameter {
+          + pyParameterValue: String
+        }
+
+        class MethodPropertySet extends AbstractMethod {}
+        class MethodObjOpen extends AbstractMethod {}
+        class MethodCall extends AbstractMethod {}
+    }
+
+    ' === Gói 4: Định nghĩa Vòng lặp (Iteration Definition) ===
+    package "Iteration Definition" {
+        abstract class AbstractIteration {
+          + pyIterationType: String {ReadOnly}
+          + pyForEachCount: Integer {ReadOnly}
+          + pyIterationTarget: String
+        }
+        abstract class IterationProperty extends AbstractIteration {
+          + pyPropertyValue: String {ReadOnly}
+          + pyPropertyReference: String {ReadOnly, Obsolete}
+        }
+        class IterationRepeat extends AbstractIteration {}
+        class IterationEmbeddedPage extends AbstractIteration {}
+        class IterationPropertyList extends IterationProperty {}
+        class IterationPropertyGroup extends IterationProperty {}
+    }
+
+    ' === Gói 5: Định nghĩa Điều kiện (Condition Definition) ===
+    package "Condition Definition (Rule-Obj-When)" {
+        abstract class RuleObjWhen {
+          + pyRuleName: String
+          + pyClassName: String
+          + {abstract} evaluate() : boolean
+        }
+        class WhenConditionExpression extends RuleObjWhen {
+          + pyExpression: String
+          + evaluate() : boolean
+        }
+        class WhenConditionAdvanced extends RuleObjWhen {
+          + pyConditionLines: AdvancedConditionLine[]
+          + pyUseAdvancedLogic: Boolean
+          + pyAdvancedLogicString: String
+          + evaluate() : boolean
+        }
+        abstract class AdvancedConditionLine {
+          + pyLabel: String
+          + {abstract} evaluateLine() : boolean
+        }
+        class AdvancedConditionLine_When extends AdvancedConditionLine {
+          + pyReferencedRuleName: String
+          + pyReferencedWhenRule: RuleObjWhen
+          + evaluateLine() : boolean
+        }
+        class AdvancedConditionLine_Expression extends AdvancedConditionLine {
+          + pyLineExpression: String
+          + evaluateLine() : boolean
+        }
+    }
 }
 
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
-}
+' === MỐI QUAN HỆ (Relationships) ===
+
+' 1. Quan hệ bên trong Lõi (Core)
+RuleObjActivity "1" *-- "1..*" ActivityStep : contains >
+
+' 2. Quan hệ Step -> Các thành phần
+ActivityStep "1" *-- "1" AbstractMethod : uses >
+ActivityStep "1" *-- "0..1" AbstractIteration : has >
+ActivityStep "1" *-- "0..*" StepTransition : has >
+
+' 3. Quan hệ Method -> Parameter
+AbstractMethod "1" *-- "0..*" StepMethodParameter : requires >
+
+' 4. Quan hệ Kết nối (Step/Transition -> When)
+ActivityStep "1" -- "0..1" WhenConditionAdvanced : has precondition >
+StepTransition "1" -- "0..1" RuleObjWhen : uses condition >
+
+' 5. Quan hệ bên trong When (Đệ quy)
+WhenConditionAdvanced "1" *-- "0..*" AdvancedConditionLine : defines >
+AdvancedConditionLine_When "1" -- "1" RuleObjWhen : calls >
 
 @enduml

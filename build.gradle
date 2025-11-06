@@ -1,5 +1,7 @@
 plugins {
     id 'groovy'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'codenarc'
 }
 
 group = 'org.example'
@@ -16,6 +18,25 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+shadowJar {
+    archiveClassifier.set('all')
+    manifest {
+        attributes 'Main-Class': 'org.example.Main'
+    }
+}
+
 test {
     useJUnitPlatform()
 }
+// Enable standard out capture during test runs to aid debugging (temporary)
+test {
+    testLogging.showStandardStreams = true
+}
+
+codenarc {
+    toolVersion = '2.2.0'
+    config = resources.text.fromFile(file('config/codenarc/rules.groovy'))
+}
+
+// leave CodeNarc reports at defaults
+check.dependsOn tasks.named('codenarcMain')

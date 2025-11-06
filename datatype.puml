@@ -1,27 +1,169 @@
-@startuml
-'https://plantuml.com/class-diagram
-
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
-
-List <|-- AbstractList
-Collection <|-- AbstractCollection
-
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
-
-class ArrayList {
-Object[] elementData
-size()
+@startuml datatype
+skinparam classAttributeIconSize 0
+package "java.util" {
+    interface Map
+    interface Iterable
 }
-
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
+package "com.pega.pegarules.pub.util" {
+    interface StringMap extends java.util.Map
 }
+package "com.pega.pegarules.pub.clipboard" {
+    enum ClipboardPropertyType {
+        STRING,
+        INTEGER,
+        DECIMAL,
+        BOOLEAN,
+        DATE,
+        PAGE,
+        PAGELIST,
+        JAVA_OBJECT_LIST,
+        JAVA_OBJECT_GROUP,
+        JAVA_PROPERTY,
+        JAVA_PROPERTY_LIST
+    }
+    interface "ClipboardPage" extends "com.pega.pegarules.pub.util.StringMap" {
+        == page-level messages ==
+        +addMessage(aMessage: String)
+        +addMessage(aMessage: String, aProperty: String)
+        +addMessage(aMessage: String, aProperty: String, aSeverity: int)
+        +clearMessages()
+        +getMessagesAll(): java.util.Iterator
+        +hasMessages(): boolean
 
+        == Map-style accessors ==
+        +get(aPropertyName: Object): String
+        +getProperty(aReference: String): ClipboardProperty
+        +getString(aReference: String): String
+        +put(aPropertyName: String, aValue: String): String
+        +putString(aPropertyName: String, aValue: String): String
+        +clearValue(aReference: String)
+        +removeProperty(aReference: String): ClipboardProperty
+        +remove(aReference: Object): String
+
+        == serialization / adoption ==
+        +getJSON(aEncode: boolean): String
+        +adoptJSONObject(aJO: Object)
+        +getXML(aEncode: boolean): String
+        +getXML(aOptions: int): String
+        +getXML(aPageName: String, aOptions: int): String
+        +adoptXMLForm(aXMLForm: String, aOptions: int)
+
+        == copying and manipulation ==
+        +copy(): ClipboardPage
+        +copyTo(aDestPage: ClipboardPage)
+        +copyFrom(aSourcePage: ClipboardPage)
+        +rename(aNewName: String)
+        +replace(aSourcePage: ClipboardPage)
+        +isEmbedded(): boolean
+        +isEmpty(): boolean
+        +isValid(): boolean
+
+        == value helpers ==
+        +setValue(aReference: String, aValue: Object)
+        +getBigDecimal(aReference: String): java.math.BigDecimal
+        +getBoolean(aReference: String): boolean
+        +getDate(aReference: String): java.util.Date
+        +putProperty(aProperty: ClipboardProperty)
+        +getEntryHandle(aPropertyReference: String): Object
+
+        == metadata ==
+        +getClassName(): String
+        +getName(): String
+        +isReadOnly(): boolean
+        +getMessages(): java.util.Collection~String~
+        +isJavaPage(): boolean
+        +copy(aPage: ClipboardPage): ClipboardPage
+        +removeFromClipboard()
+    }
+    interface "ClipboardProperty" extends "java.util.Iterable" {
+        +add(aValue: Object)
+        +add(aIndex: int, aValue: Object)
+        +clearValue()
+        +contains(aValue: Object): boolean
+        +doBackwardChain()
+        +get(aIndex: int): ClipboardProperty
+        +get(aIndex: String): ClipboardProperty
+        +getAbsoluteReference(): String
+        +getBigDecimalValue(): java.math.BigDecimal
+        +getBooleanValue(): boolean
+        +getDefinition(): Object
+        +getDoubleValue(): double
+        +getEntryHandle(): Object
+        +getErrors(): java.util.Iterator
+        +getIntegerValue(): int
+        +getJustification(): String
+        +getLength(): int
+        +getMessages(): java.util.Iterator
+        +getMode(): int
+        +getName(): String
+        +getParent(): ClipboardPage
+        +getPageValue(): ClipboardPage
+        +getPropertyValue(): Object
+        +getReference(): String
+        +getStringValue(): String
+        +getType(): int
+        +hasMessages(): boolean
+        +isError(): boolean
+        +isIncompatible(): boolean
+        +isProtected(): boolean
+        +isPage(): boolean
+        +isUndefined(): boolean
+        +iterator(): java.util.Iterator~ClipboardProperty~
+        +remove(aIndex: int)
+        +remove(aIndex: String)
+        +setJustification(aJustification: String)
+        +setValue(aValue: Object)
+        +size(): int
+        +toBoolean(): boolean
+        +toDate(): java.util.Date
+        +toDouble(): double
+        +toInteger(): int
+        +toString(): String
+    }
+    abstract class AbstractClipboardProperty implements ClipboardProperty {
+        type: ClipboardPropertyType
+    }
+
+    class SingleValue extends AbstractClipboardProperty {
+        value: String
+    }
+    class ValueList extends AbstractClipboardProperty{
+        value: java.util.List<SingleValue>
+    }
+    class ValueGroup extends AbstractClipboardProperty{
+        value: java.util.Map<String, ClipboardProperty>
+    }
+    class Page extends AbstractClipboardProperty {
+        value: ClipboardPage
+    }
+    class PageList extends AbstractClipboardProperty {
+        value: java.util.List<ClipboardPage>
+    }
+    class PageGroup extends AbstractClipboardProperty {
+        value: java.util.Map<String, ClipboardPage>
+    }
+
+    class JavaProperty extends AbstractClipboardProperty {
+        value: Object
+    }
+    class JavaPropertyList extends AbstractClipboardProperty {
+        value: java.util.List<JavaProperty>
+    }
+    class JavaObject extends AbstractClipboardProperty {
+        value: java.util.Map<String, JavaProperty>
+    }
+    class JavaObjectList extends AbstractClipboardProperty {
+        value: java.util.List<JavaObject>
+    }
+    class JavaObjectGroup extends AbstractClipboardProperty {
+        value: java.util.Map<String, JavaObject>
+    }
+    class ClipboardFactory {
+        +newPage(pxObjClass: String): ClipboardPage
+        +newPage(aMap: java.util.Map, pxObjClass: String): ClipboardPage
+        +newPage(aProps: java.util.List, pxObjClass: String): ClipboardPage
+        +newPageList(aPages: java.util.List<ClipboardPage>): PageList
+        +newProperty(aName: String, aValue: Object, aType: ClipboardPropertyType): ClipboardProperty
+    }
+}
 @enduml

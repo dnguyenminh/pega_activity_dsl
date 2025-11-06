@@ -1,37 +1,99 @@
 @startuml
-'https://plantuml.com/activity-diagram-beta
+title Activity Execution Flow (Setting Called Activity Params)
+skinparam ActivityDiamondBackgroundColor #FFC
+skinparam ActivityBarColor #888
+skinparam PartitionBorderColor #000088
+skinparam PartitionBackgroundColor #F0F0FF
 
 start
-:ClickServlet.handleRequest();
-:new page;
-if (Page.onSecurityCheck) then (true)
-  :Page.onInit();
-  if (isForward?) then (no)
-    :Process controls;
-    if (continue processing?) then (no)
-      stop
+
+:Bắt đầu Vòng lặp (ví dụ: Step 14);
+:Đọc cấu hình lặp (Loop Config) từ Step;
+
+while (Vòng lặp (Outer) chưa hoàn thành?) is (Yes)
+    :LƯU TRỮ (PUSH) các biến lặp cũ (nếu có);
+
+    :Set param.pyForEachCount (Outer);
+    :Set <CURRENT> (Outer) = trang/giá trị/index;
+
+    if (Step này có Step con lồng nhau (ví dụ: 14.1)?) then (Yes)
+
+        partition "Thực thi Vòng lặp lồng nhau (Nested Loop)" {
+            :Lấy Step con (ví dụ: 14.1);
+            :Đọc cấu hình lặp (InnerLoopConfig) từ Step con;
+
+            while (Vòng lặp (Inner) chưa hoàn thành?) is (Yes)
+                :LƯU TRỮ (PUSH) các biến lặp (Outer);
+
+                :Set param.pyForEachCount (Inner);
+                :Set <CURRENT> (Inner) = trang/giá trị/index;
+
+                ' === LOGIC SET PARAM CHO 'CALL' (INNER) ===
+                if (Method của Step con là 'Call'?) then (Yes)
+                    :Tạo Parameter Page cho Activity con;
+                    switch (InnerLoopConfig.Type)
+                    case (propertylist)
+                        :Set Param.pyIterationType = "propertylist";
+                        :Set Param.pyIterationTarget = InnerLoopConfig.Property;
+                        :Set Param.pyPropertyValue = <CURRENT> (giá trị);
+                    case (propertygroup)
+                        :Set Param.pyIterationType = "propertygroup";
+                        :Set Param.pyIterationTarget = InnerLoopConfig.Property;
+                        :Set Param.pyPropertyValue = <CURRENT> (giá trị);
+                    case (embedded)
+                        :Set Param.pyIterationType = "embedded";
+                        :Set Param.pyIterationTarget = StepPage của Step con;
+                    case (page)
+                        :Set Param.pyIterationType = "page";
+                        :Set Param.pyIterationTarget = "";
+                    case (repeat)
+                        :Set Param.pyIterationType = "repeat";
+                        :Set Param.pyIterationTarget = "";
+                    endswitch
+                    :Gọi Activity con;
+                else (No)
+                    :Thực thi Method của Step con (vd: Property-Set);
+                endif
+                ' === KẾT THÚC LOGIC 'CALL' (INNER) ===
+
+                :PHỤC HỒI (POP) các biến lặp (Outer);
+            endwhile (No)
+        }
+
+    else (No)
+        ' === LOGIC SET PARAM CHO 'CALL' (OUTER) ===
+        if (Method của Step 14 là 'Call'?) then (Yes)
+            :Tạo Parameter Page cho Activity con;
+            switch (LoopConfig.Type)
+            case (propertylist)
+                :Set Param.pyIterationType = "propertylist";
+                :Set Param.pyIterationTarget = LoopConfig.Property;
+                :Set Param.pyPropertyValue = <CURRENT> (giá trị);
+            case (propertygroup)
+                :Set Param.pyIterationType = "propertygroup";
+                :Set Param.pyIterationTarget = LoopConfig.Property;
+                :Set Param.pyPropertyValue = <CURRENT> (giá trị);
+            case (embedded)
+                :Set Param.pyIterationType = "embedded";
+                :Set Param.pyIterationTarget = StepPage của Step 14;
+            case (page)
+                :Set Param.pyIterationType = "page";
+                :Set Param.pyIterationTarget = "";
+            case (repeat)
+                :Set Param.pyIterationType = "repeat";
+                :Set Param.pyIterationTarget = "";
+            endswitch
+            :Gọi Activity con;
+        else (No)
+            :Thực thi Method của Step 14 (vd: Property-Set);
+        endif
+        ' === KẾT THÚC LOGIC 'CALL' (OUTER) ===
     endif
 
-    if (isPost?) then (yes)
-      :Page.onPost();
-    else (no)
-      :Page.onGet();
-    endif
-    :Page.onRender();
-  endif
-else (false)
-endif
+    :PHỤC HỒI (POP) các biến lặp cũ (của vòng lặp trước đó, nếu có);
 
-if (do redirect?) then (yes)
-  :redirect process;
-else
-  if (do forward?) then (yes)
-    :Forward request;
-  else (no)
-    :Render page template;
-  endif
-endif
+endwhile (No)
 
+:Kết thúc;
 stop
-
 @enduml

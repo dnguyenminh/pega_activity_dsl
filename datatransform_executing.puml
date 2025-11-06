@@ -1,27 +1,97 @@
 @startuml
-'https://plantuml.com/class-diagram
+title Data Transform Execution Flow (with Step Loop Parameters)
+skinparam ActivityDiamondBackgroundColor #FFC
+skinparam ActivityBarColor #888
+skinparam PartitionBorderColor #448844
+skinparam PartitionBackgroundColor #F0FFF0
 
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
+start
 
-List <|-- AbstractList
-Collection <|-- AbstractCollection
+:Bắt đầu Data Transform (Outer);
+:Tải danh sách các TransformationStep (Bước);
 
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
+while (Còn Step để xử lý?) is (Yes)
+    :Lấy Step hiện tại (Step N);
 
-class ArrayList {
-Object[] elementData
-size()
-}
+    ' === 1. KIỂM TRA ĐIỀU KIỆN (WHEN/CONDITION) ===
+    if (Step KHÔNG có Condition HOẶC Condition == TRUE?) then (Yes)
 
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
-}
+        ' === 2. KIỂM TRA STEP CÓ PHẢI LÀ VÒNG LẶP KHÔNG ===
+        if (Action của Step N là một Vòng lặp (vd: 'For Each Page In')?) then (Yes)
 
+            :Đọc cấu hình lặp (LoopConfig) từ Step N;
+
+            ' --- BẮT ĐẦU VÒNG LẶP BÊN TRONG (INNER LOOP) ---
+            while (Vòng lặp (Inner) chưa hoàn thành?) is (Yes)
+
+                ' *** SET CÁC BIẾN LẶP (BẠN ĐÃ ĐÚNG) ***
+                :Set param.pyForEachCount (Inner);
+                :Set <CURRENT> = trang/giá trị hiện tại;
+
+                :Lấy Step con (vd: Step N.1);
+
+                if (Condition (Inner) == TRUE?) then (Yes)
+                    switch (Action của Step con)
+                    case (Call Activity)
+                        ' *** TẠO CÁC PARAMETER ĐẶC BIỆT ***
+                        :Tạo Parameter Page cho Activity con;
+                        switch (LoopConfig.Type)
+                        case (propertylist)
+                            :Set Param.pyIterationType = "propertylist";
+                            :Set Param.pyIterationTarget = LoopConfig.Property;
+                            :Set Param.pyPropertyValue = <CURRENT> (giá trị);
+                        case (propertygroup)
+                            :Set Param.pyIterationType = "propertygroup";
+                            :Set Param.pyIterationTarget = LoopConfig.Property;
+                            :Set Param.pyPropertyValue = <CURRENT> (giá trị);
+                        case (embedded)
+                            :Set Param.pyIterationType = "embedded";
+                            :Set Param.pyIterationTarget = StepPage của Step N;
+                        case (default)
+                            :Set Param.pyIterationType = LoopConfig.Type;
+                            :Set Param.pyIterationTarget = "";
+                        endswitch
+                        :Thực thi CALL (Activity);
+
+                    case (Call DataTransform)
+                        partition "Thực thi DT con (Nested)" {
+                            :Thực thi đệ quy toàn bộ logic;
+                            note right: 'param.pyForEachCount' (Inner)
+                            note right: có sẵn cho DT con
+                        }
+                    case (Set)
+                        :Thực thi SET (Inner);
+                    case (default)
+                        :Thực thi Action khác (Inner);
+                    endswitch
+                else (No)
+                    :Log: Bỏ qua Step con;
+                endif
+            endwhile (No)
+            ' --- KẾT THÚC VÒNG LẶP BÊN TRONG ---
+
+        else (No)
+            ' === 3. XỬ LÝ STEP ĐƠN (KHÔNG PHẢI VÒNG LẶP) ===
+            switch (Step.Action.actionType)
+            case (Call DataTransform)
+                partition "Thực thi DT con (Nested)" {
+                    :Thực thi đệ quy toàn bộ logic;
+                }
+            case (Call Activity)
+                :Thực thi CALL (Activity);
+            case (Set)
+                :Thực thi SET Target = Source;
+            case (default)
+                :Thực thi Action khác;
+            endswitch
+        endif
+
+    else (No)
+        :Log: Bỏ qua Step N do Precondition False;
+    endif
+
+endwhile (No)
+
+:Kết thúc Data Transform (Outer);
+stop
 @enduml

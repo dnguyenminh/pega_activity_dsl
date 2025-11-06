@@ -1,27 +1,168 @@
 @startuml
-'https://plantuml.com/class-diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam nodesep 70
+skinparam ranksep 70
+skinparam linetype ortho
 
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
+' === GÓI CHÍNH ===
+package "Pega Platform" {
 
-List <|-- AbstractList
-Collection <|-- AbstractCollection
+  ' === Rule Hierarchy ===
+  abstract class Rule {
+    + pyRuleName: String
+    + pyLabel: String
+    + pyDescription: String
+    + pyRuleSet: String
+    + pyRuleSetVersion: String
+    + pyClassName: String
+    + pyCircumstanceProperty: String
+    + pyCircumstanceValue: String
+  }
 
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
+  abstract class "Rule-Obj-" as RuleObj {
+    + pyAppliesTo: String <<Class>>
+    + pyIdentifier: String
+  }
 
-class ArrayList {
-Object[] elementData
-size()
+  class "Rule-Obj-Model" as DataTransform {
+    + pyModelName: String
+    + pyPreCondition: When <<optional>>
+    + pyPostActivity: Activity <<optional>>
+    + pyOptimizeFor: {"Speed", "Readability"}
+    + pySteps: List<TransformationStep>
+    + pyIsReusable: Boolean = true
+    + pyPageContext: String <<Clipboard Page>>
+  }
+
+  ' === Clipboard & Data ===
+  class ClipboardPage {
+    + pageName: String
+    + pageClass: String
+    + isEmbedded: Boolean
+    + properties: Map<String, Property>
+  }
+
+  class Property {
+    + pyPropertyName: String
+    + pyPropertyType: {"Text", "Integer", "Decimal", "DateTime", "Page", "Page List", "Value List"}
+    + pyMode: {"Single", "List", "Group"}
+    + value: Object
+  }
+
+  ' === Expression & Condition ===
+  class Expression {
+    + expressionText: String
+    + returnType: String
+    + parameters: List<Parameter>
+  }
+
+  class WhenRule {
+    + pyWhenName: String
+    + pyCondition: Expression
+  }
+
+  class Activity {
+    + pyActivityName: String
+    + pySteps: List<ActivityStep>
+  }
+
+  ' === Data Transform Definition ===
+  package "Transformation Definition" {
+    class TransformationStep {
+      + stepNumber: Integer
+      + action: Action
+      + target: String <<.Property or .Page>>
+      + source: String <<Property, Literal, Expression>>
+      + condition: Expression <<optional>>
+      + whenRule: WhenRule <<optional>>
+      + isEnabled: Boolean = true
+      + comment: String
+    }
+
+    abstract class Action {
+      + actionType: String
+    }
+
+    class Set extends Action {
+      + overwrite: Boolean = true
+    }
+
+    class Append extends Action {
+      + toList: Boolean = true
+    }
+
+    class "Append to List" as AppendList extends Action
+
+    class Merge extends Action {
+      + mergeMode: {"Overwrite", "Skip", "Merge"}
+    }
+
+    class "Merge List" as MergeList extends Action
+
+    class Remove extends Action
+
+    class Call extends Action {
+      + targetTransform: DataTransform
+      + targetActivity: Activity
+      + parameters: Map<String, String>
+    }
+
+    class JSON extends Action {
+      + jsonPath: String
+      + targetStructure: String
+    }
+
+    class XPath extends Action {
+      + xpathExpression: String
+    }
+  }
 }
 
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
-}
+' === MỐI QUANHỆ ===
+
+' Hierarchy
+Rule <|-- RuleObj
+RuleObj <|-- DataTransform
+
+' Composition & Aggregation
+DataTransform o--> "1..*" TransformationStep : contains
+TransformationStep --> "1" Action : performs
+TransformationStep --> "1" Property : target
+TransformationStep --> "0..1" Property : source
+TransformationStep --> "0..1" Expression : condition
+TransformationStep --> "0..1" WhenRule : when
+
+ClipboardPage o--> "*" Property : contains
+DataTransform --> ClipboardPage : reads/writes
+DataTransform --> Expression : evaluates
+DataTransform --> Activity : post-process
+
+Call --> DataTransform : calls
+Call --> Activity : or calls
+
+' Source có thể là
+note right of Property
+  Source can be:
+  - Another Property
+  - Literal value
+  - Expression result
+end note
+
+' === GHI CHÚ ===
+note top of DataTransform
+  <b>Data Transform Rule</b>
+  - Type: Rule-Obj-Model
+  - Purpose: Map & transform data
+  - Executed sequentially
+  - Context: Primary Page (work page)
+end note
+
+note bottom of TransformationStep
+  Each step:
+  1. Check condition (if any)
+  2. Execute action
+  3. Set target = source
+end note
 
 @enduml

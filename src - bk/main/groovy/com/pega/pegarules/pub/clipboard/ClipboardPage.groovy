@@ -18,10 +18,6 @@ import java.util.Iterator
  */
 interface ClipboardPage extends StringMap {
 
-    // Base class defaults shared across clipboard pages (Pega @baseclass semantics)
-    // Represented as a plain Map for easier manipulation in tests and via Map APIs
-    static Map baseClassDefaults = [:]
-
     String COPYRIGHT = "Copyright (c) 2018 Pegasystems Inc."
     String VERSION = "@version \$Id: ClipboardPage.java 181231 2018-03-22 14:39:59Z SachinMittal \$"
 
