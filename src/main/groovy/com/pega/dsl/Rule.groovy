@@ -17,13 +17,15 @@ class Rule {
 
     def description(String description) {
         this.description = description
+        return this
     }
     
     // Explicit setter to avoid property dispatch ambiguity from builders/DSL.
     // Calling setDescription(...) is a direct method call and won't re-enter
     // closure dispatch paths that previously caused recursion.
-    void setDescription(String description) {
+    def setDescription(String description) {
         this.description = description
+        return this
     }
 
     /**

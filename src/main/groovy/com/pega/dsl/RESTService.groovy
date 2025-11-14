@@ -3,6 +3,7 @@ package com.pega.dsl
 class RESTService {
     String name
     String servicePackage
+    String description // Added this line
     // common metadata expected by tests
     String type = 'Service-REST'
     String activity
@@ -142,6 +143,16 @@ class RESTService {
         def node = (paths ? paths[-1] : null)
         def op = node?.operations ? node.operations[-1] : null
         return op?.responseMapping ?: [:]
+    }
+
+    def description(String description) {
+        this.description = description
+        return this
+    }
+
+    def setDescription(String description) {
+        this.description = description
+        return this
     }
 }
 

@@ -137,7 +137,12 @@ class PegaRuleBuilder {
 
     def harness(String name, Closure closure) { withNewDelegate(new Harness(name: name), closure) }
 
-    def flow(String name, Closure closure) { withNewDelegate(new Flow(name: name), closure) }
+    def flow(String name, Closure closure) {
+        def f = new Flow(name: name)
+        def builder = new FlowBuilder(f)
+        withNewDelegate(builder, closure)
+        return f
+    }
 
     def correspondence(String name, Closure closure) { callDelegate(new Correspondence(name: name), closure) }
 
@@ -145,7 +150,7 @@ class PegaRuleBuilder {
 
     def soapConnector(String name, Closure closure) { withPrevDelegate(new SOAPConnector(name: name), closure) }
 
-    def restService(String name, Closure closure) { withPrevDelegate(new RESTService(name: name), closure) }
+    def restService(String name, Closure closure) { withNewDelegateOwnerFirst(new RESTService(name: name), closure) }
 
     def testCase(String name, Closure closure) { withNewDelegate(new TestCase(name: name), closure) }
 

@@ -127,4 +127,24 @@ class FlowTest extends Specification {
         flow.shapes[0].properties['y'] == 50
         flow.shapes[1].properties['width'] == 200
     }
+
+    def "should cover doCall with no arguments"() {
+        when:
+        def f = new Flow('TestFlow')
+        def builder = new FlowBuilder(f)
+        def result = builder()
+
+        then:
+        result == builder
+    }
+
+    def "should cover doCall with string argument"() {
+        when:
+        def f = new Flow('TestFlow')
+        def builder = new FlowBuilder(f)
+        def result = builder('SomeString')
+
+        then:
+        result == builder
+    }
 }

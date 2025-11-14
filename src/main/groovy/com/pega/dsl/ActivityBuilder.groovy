@@ -319,7 +319,7 @@ class ActivityBuilder {
                 if (prev != this) PegaDslCore.CURRENT_DELEGATE.set(this)
                 def target = closure.rehydrate(step, step, step)
                 target.resolveStrategy = Closure.DELEGATE_FIRST
-                try { /* PegaDslCore.installClosureInterceptors(target) */ } catch (ignored) { }
+                // PegaDslCore.installClosureInterceptors(target)
                 target.call()
             } finally {
                 if (prev != null) PegaDslCore.CURRENT_DELEGATE.set(prev) else PegaDslCore.CURRENT_DELEGATE.remove()

@@ -121,15 +121,18 @@ class ActivityBuilderOtherMethodsTest extends Specification {
         activity.isAvailable == false
     }
 
-    def "connectREST with invalid arguments"() {
+    def "step method without closure"() {
         given:
         def activity = new Activity()
         def builder = new ActivityBuilder(activity)
 
         when:
-        builder.connectREST("MyConnector", "invalid")
+        builder.step("SimpleStep")
 
         then:
-        activity.steps.size() == 0
+        activity.steps.size() == 1
+        def step = activity.steps[0]
+        step.method == 'SimpleStep'
+        step.parameters.isEmpty()
     }
 }

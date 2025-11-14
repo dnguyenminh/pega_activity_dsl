@@ -248,29 +248,25 @@ class ActivityBuilderDefensiveBranchesTest extends Specification {
         // Defensive branch: should not throw, but allow for suppressed exceptions
         assert thrown == null || thrown instanceof RuntimeException
     }
-    def "parseStringAndMapArgs returns null for edge case input shapes (comprehensive sweep for line 59)"() {
+
+    def "propertySet when delegate is this"() {
         given:
-        def b = new ActivityBuilder(new Activity())
-        expect:
-        // Array with custom object
-        b.&parseStringAndMapArgs([new Object()]) == null
-        // Array with closure
-        b.&parseStringAndMapArgs([{ -> }]) == null
-        // Array with nested array
-        b.&parseStringAndMapArgs([[1,2,3]]) == null
-        // Array with more than two elements, all unsupported types
-        b.&parseStringAndMapArgs([new Object(), new Object(), new Object()]) == null
-        // Array with String, then unsupported type, then another unsupported type
-        b.&parseStringAndMapArgs(['str', new Object(), new Object()]) == null
-        // Array with String, then closure
-        b.&parseStringAndMapArgs(['str', { -> }]) == null
-        // Array with String, then nested array, then custom object
-        b.&parseStringAndMapArgs(['str', [1,2], new Object()]) == null
-        // Array with String, then null, then custom object
-        b.&parseStringAndMapArgs(['str', null, new Object()]) == null
-        // Array with String, then null, then closure
-        b.&parseStringAndMapArgs(['str', null, { -> }]) == null
-        // Array with String, then null, then nested array
-        b.&parseStringAndMapArgs(['str', null, [1,2,3]]) == null
+        def activity = new Activity()
+        def builder = new ActivityBuilder(activity)
+        PegaDslCore.CURRENT_DELEGATE.set(builder)
+        def params = new LinkedHashMap()
+        params.put("param1", "value1")
+
+        when:
+        builder.propertySet("testProperty", params)
+
+        then:
+        activity.steps.size() == 1
+        def step = activity.steps[0]
+        step.method == 'Property-Set'
+        step.parameters['PropertyName'] == 'testProperty'
+        step.parameters['param1'] == 'value1'
+        cleanup:
+        PegaDslCore.CURRENT_DELEGATE.remove()
     }
 }

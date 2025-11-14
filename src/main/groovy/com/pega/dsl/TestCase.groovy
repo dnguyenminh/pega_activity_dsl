@@ -10,6 +10,11 @@ class TestCase extends Rule {
     String description
     String ruleToTest
 
+    def setDescription(String description) {
+        super.setDescription(description)
+        return this
+    }
+
     TestCase() {
         this.type = 'TestCase'
     }

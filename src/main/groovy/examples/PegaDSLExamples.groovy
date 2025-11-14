@@ -52,7 +52,7 @@ class PegaDSLExamples {
                     objSave()
                     
                     // Send confirmation email
-                    call 'SendConfirmationEmail', [
+                    callActivity 'SendConfirmationEmail', [
                         CustomerEmail: '.Customer.Email',
                         RequestID: '.RequestID'
                     ]
@@ -159,7 +159,7 @@ class PegaDSLExamples {
             maxAge 1800  // 30 minutes
             refresh 'Reload if older than specified age'
             
-            activity 'LoadCustomerData', [
+            sourceActivity 'LoadCustomerData', [
                 CustomerID: 'param.CustomerID'
             ]
         }
@@ -176,24 +176,24 @@ class PegaDSLExamples {
             set '.Status', '"Open"'
             set '.AssignedTo', '@requestor.pyUserIdentifier'
             
-            when '.Priority == null' {
+            when(if: '.Priority == null', then: {
                 set '.Priority', '"Medium"'
-            }
+            })
             
-            when '.RequestType == "Technical Support"' {
+            when(if: '.RequestType == "Technical Support"', then: {
                 set '.Category', '"Technical"'
                 set '.SLA', '24'
-            }
+            })
             
-            when '.RequestType == "Billing Inquiry"' {
+            when(if: '.RequestType == "Billing Inquiry"', then: {
                 set '.Category', '"Financial"'
                 set '.SLA', '48'
-            }
+            })
             
-            forEach '.Attachments' {
+            forEach(in: '.Attachments', do: {
                 set '.ProcessedFlag', 'true'
                 set '.ProcessedBy', '@requestor.pyUserIdentifier'
-            }
+            })
             
             applyDataTransform 'DT_AuditFields'
         }
@@ -297,7 +297,7 @@ class PegaDSLExamples {
             
             label 'Customer Request History', 'Customer.Name'
             
-            repeatingGrid '.RequestHistory' {
+            repeatingGrid('.RequestHistory') {
                 column('RequestID', 'Request ID') {
                     link()
                     sortable()
@@ -465,9 +465,9 @@ class PegaDSLExamples {
             driver 'org.postgresql.Driver'
             credentials 'pegauser', 'pegapass'
             
-            property 'maxConnections', '20'
-            property 'connectionTimeout', '30000'
-            property 'idleTimeout', '600000'
+            setDatabaseProperty 'maxConnections', '20'
+            setDatabaseProperty 'connectionTimeout', '30000'
+            setDatabaseProperty 'idleTimeout', '600000'
         }
     }
 
@@ -510,7 +510,7 @@ class PegaDSLExamples {
             }
             
             connector('Credit Check', 'ValidateCustomerCredit') {
-                property 'timeout', 30
+                setShapeProperty('timeout', '30')
             }
             
             decision('Route by Priority') {
@@ -566,7 +566,7 @@ class PegaDSLExamples {
      */
     def static exampleRESTService() {
         return restService('CustomerRequestService') {
-            description 'REST service for customer request operations'
+            setDescription 'REST service for customer request operations'
             servicePackage 'CustomerService'
             
             path '/api/v1/customers/{customerID}/requests'
@@ -614,29 +614,51 @@ class PegaDSLExamples {
         return decisionTree('CustomerEscalationTree') {
             description 'Determine escalation path for customer issues'
             
-            root('.RequestType') {
-                condition '.RequestType', '=='
-                
-                branch('Technical Support') {
-                    condition '.Priority', '=='
-                    
-                    branch('High', 'EscalateToSeniorTech')
-                    branch('Medium', 'AssignToTechTeam')
-                    branch('Low', 'AssignToJuniorTech')
-                }
-                
-                branch('Billing Inquiry') {
-                    condition '.Customer.Tier', '=='
-                    
-                    branch('Gold', 'EscalateToBillingManager')
-                    branch('Silver', 'AssignToBillingTeam')
-                    branch('Bronze', 'AssignToJuniorBilling')
-                }
-                
-                branch('Complaint') {
-                    setResult('EscalateToManager')
-                }
-            }
+                        root {
+            
+                            condition '.RequestType', '=='
+            
+                            
+            
+                            branch('Technical Support') {
+            
+                                condition '.Priority', '=='
+            
+                                
+            
+                                branch('High', 'EscalateToSeniorTech')
+            
+                                branch('Medium', 'AssignToTechTeam')
+            
+                                branch('Low', 'AssignToJuniorTech')
+            
+                            }
+            
+                            
+            
+                            branch('Billing Inquiry') {
+            
+                                condition '.Customer.Tier', '=='
+            
+                                
+            
+                                branch('Gold', 'EscalateToBillingManager')
+            
+                                branch('Silver', 'AssignToBillingTeam')
+            
+                                branch('Bronze', 'AssignToJuniorBilling')
+            
+                            }
+            
+                            
+            
+                            branch('Complaint') {
+            
+                                setResult('EscalateToManager')
+            
+                            }
+            
+                        }
         }
     }
 

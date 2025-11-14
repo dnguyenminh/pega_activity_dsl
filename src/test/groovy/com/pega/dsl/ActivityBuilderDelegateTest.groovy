@@ -17,8 +17,22 @@ class ActivityBuilderDelegateTest extends Specification {
         builder.description("test description")
 
         then:
-        activity.getDescription() == null
+        a.getDescription() == null
+        cleanup:
+        PegaDslCore.CURRENT_DELEGATE.remove()
+    }
 
+    def "description when delegate is this"() {
+        given:
+        def activity = new Activity()
+        def builder = new ActivityBuilder(activity)
+        PegaDslCore.CURRENT_DELEGATE.set(builder)
+
+        when:
+        builder.description("Test Description")
+
+        then:
+        activity.description == "Test Description"
         cleanup:
         PegaDslCore.CURRENT_DELEGATE.remove()
     }

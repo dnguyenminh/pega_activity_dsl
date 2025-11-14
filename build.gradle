@@ -14,7 +14,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.apache.groovy:groovy:4.0.20'
+    implementation 'org.apache.groovy:groovy-all:4.0.20'
+    implementation 'org.apache.groovy:groovy-templates:4.0.20'
     implementation 'org.apache.groovy:groovy-json:4.0.20' // add json module for JsonOutput
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
