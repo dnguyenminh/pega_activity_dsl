@@ -1,0 +1,47 @@
+{
+  "mcpServers": {
+    "puppeteer": {
+      "command": "C:\\Users\\ASUS\\scoop\\apps\\nodejs24\\current\\npx.cmd",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "env": {
+        "MCP_LLM_PROVIDER": "openai",
+        "MCP_LLM_OPENAI_API_BASE_URL": "http://localhost:1234/v1",
+        "MCP_LLM_MODEL_NAME": "qwen3-4b-instruct-2507",
+        "MCP_LLM_OPENAI_API_KEY": "lm-studio"
+      },
+      "alwaysAllow": [
+        "puppeteer_navigate",
+        "puppeteer_evaluate",
+        "puppeteer_screenshot"
+      ]
+    },
+    "plantuml": {
+      "command": "C:\\Users\\ASUS\\scoop\\apps\\nodejs24\\current\\npx.cmd",
+      "args": [
+        "-y",
+        "plantuml-mcp-server"
+      ],
+      "env": {
+        "PLANTUML_SERVER_URL": "https://www.plantuml.com/plantuml"
+      },
+      "alwaysAllow": [
+        "generate_plantuml_diagram"
+      ]
+    },
+    "terminal": {
+      "command": "C:\\Users\\ASUS\\scoop\\apps\\nodejs24\\current\\npx.cmd",
+      "args": [
+        "-y",
+        "mcp-cli-exec"
+      ],
+      "env": {},
+      "alwaysAllow": [
+        "cli-exec",
+        "cli-exec-raw"
+      ]
+    }
+  }
+}

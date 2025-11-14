@@ -1,99 +1,150 @@
 @startuml
-title Activity Execution Flow (Setting Called Activity Params)
-skinparam ActivityDiamondBackgroundColor #FFC
-skinparam ActivityBarColor #888
-skinparam PartitionBorderColor #000088
-skinparam PartitionBackgroundColor #F0F0FF
+skinparam classAttributeIconSize 0
 
-start
+class DataPage {
+  +name : String
+  +className : String
+  +dataSource : String
+  +loadActivity : String
+  +parameters : Map
+  +scope : String
+  +type : String
+  +refreshStrategy : String
+  +savePlan : String
+  +loadManagement : String
+  +pagesAndClasses : String
+  +usage : String
+  +instances : List<DataPageInstance>
+}
 
-:Bắt đầu Vòng lặp (ví dụ: Step 14);
-:Đọc cấu hình lặp (Loop Config) từ Step;
+class DataPageInstance {
+  +key : String
+  +createdAt : Date
+  +expired : Boolean
+}
 
-while (Vòng lặp (Outer) chưa hoàn thành?) is (Yes)
-    :LƯU TRỮ (PUSH) các biến lặp cũ (nếu có);
+class DataTransform {
+  +name : String
+  +description : String
+  +settings : Map
+  +pagesAndClasses : String
+  +actions : List<Action>
+  +autoMap : Boolean
+  +forEach : List<String>
+  +whenConditions : String
+  +sortCriteria : String
+}
 
-    :Set param.pyForEachCount (Outer);
-    :Set <CURRENT> (Outer) = trang/giá trị/index;
+class Activity {
+  +name : String
+  +className : String
+  +activityType : String
+  +context : String
+  +access : String
+  +parameters : List<String>
+  +localVariables : List<String>
+  +steps : List<Step>
+  +pagesAndClasses : String
+  +security : String
+  +history : String
+  +exceptionHandling : String
+  +methodsCalled : List<String>
+}
 
-    if (Step này có Step con lồng nhau (ví dụ: 14.1)?) then (Yes)
+class WhenRule {
+  +name : String
+  +conditions : String
+  +pagesAndClasses : String
+  +advancedOptions : String
+}
 
-        partition "Thực thi Vòng lặp lồng nhau (Nested Loop)" {
-            :Lấy Step con (ví dụ: 14.1);
-            :Đọc cấu hình lặp (InnerLoopConfig) từ Step con;
+class FunctionRule {
+  +name : String
+  +javaCode : String
+  +aliases : List<String>
+  +traceable : Boolean
+}
 
-            while (Vòng lặp (Inner) chưa hoàn thành?) is (Yes)
-                :LƯU TRỮ (PUSH) các biến lặp (Outer);
+class LibraryRule {
+  +name : String
+  +functions : List<FunctionRule>
+}
 
-                :Set param.pyForEachCount (Inner);
-                :Set <CURRENT> (Inner) = trang/giá trị/index;
+class Property {
+  +name : String
+  +mode : String
+  +type : String
+  +qualifiers : String
+  +advancedSettings : String
+}
 
-                ' === LOGIC SET PARAM CHO 'CALL' (INNER) ===
-                if (Method của Step con là 'Call'?) then (Yes)
-                    :Tạo Parameter Page cho Activity con;
-                    switch (InnerLoopConfig.Type)
-                    case (propertylist)
-                        :Set Param.pyIterationType = "propertylist";
-                        :Set Param.pyIterationTarget = InnerLoopConfig.Property;
-                        :Set Param.pyPropertyValue = <CURRENT> (giá trị);
-                    case (propertygroup)
-                        :Set Param.pyIterationType = "propertygroup";
-                        :Set Param.pyIterationTarget = InnerLoopConfig.Property;
-                        :Set Param.pyPropertyValue = <CURRENT> (giá trị);
-                    case (embedded)
-                        :Set Param.pyIterationType = "embedded";
-                        :Set Param.pyIterationTarget = StepPage của Step con;
-                    case (page)
-                        :Set Param.pyIterationType = "page";
-                        :Set Param.pyIterationTarget = "";
-                    case (repeat)
-                        :Set Param.pyIterationType = "repeat";
-                        :Set Param.pyIterationTarget = "";
-                    endswitch
-                    :Gọi Activity con;
-                else (No)
-                    :Thực thi Method của Step con (vd: Property-Set);
-                endif
-                ' === KẾT THÚC LOGIC 'CALL' (INNER) ===
+class DecisionTable {
+  +name : String
+}
+class DecisionTree {
+  +name : String
+}
+class ValidateRule {
+  +name : String
+}
+class ConstraintRule {
+  +name : String
+}
+class Message {
+  +id : String
+  +text : String
+  +severity : String
+}
+class Paragraph {
+  +id : String
+  +content : String
+}
+class MapValue {
+  +name : String
+}
+class FieldValue {
+  +name : String
+}
+class CorrespondenceRule {
+  +name : String
+  +type : String
+}
+class Notification {
+  +name : String
+}
 
-                :PHỤC HỒI (POP) các biến lặp (Outer);
-            endwhile (No)
-        }
+DataPage "1" *-- "0..*" DataPageInstance : creates
+DataPage --> WhenRule : "refresh check uses"
+DataPage --> Activity : "load activity"
+Activity --> DataTransform : "may call / reference"
+Activity --> Property : "reads/writes"
+Activity --> WhenRule : "evaluates"
+DataTransform --> Property : "maps ->"
+LibraryRule o-- FunctionRule : contains
+FunctionRule --> Activity : "invoked by"
+FunctionRule --> DataTransform : "invoked by"
+WhenRule --> Property : "references"
+DecisionTable --> Property : "operates on"
+DecisionTree --> Property : "operates on"
+ValidateRule --> Property : "validates"
+ConstraintRule --> Property : "constraints for"
+CorrespondenceRule --> Message : "uses"
+Notification --> Activity : "triggered by"
 
-    else (No)
-        ' === LOGIC SET PARAM CHO 'CALL' (OUTER) ===
-        if (Method của Step 14 là 'Call'?) then (Yes)
-            :Tạo Parameter Page cho Activity con;
-            switch (LoopConfig.Type)
-            case (propertylist)
-                :Set Param.pyIterationType = "propertylist";
-                :Set Param.pyIterationTarget = LoopConfig.Property;
-                :Set Param.pyPropertyValue = <CURRENT> (giá trị);
-            case (propertygroup)
-                :Set Param.pyIterationType = "propertygroup";
-                :Set Param.pyIterationTarget = LoopConfig.Property;
-                :Set Param.pyPropertyValue = <CURRENT> (giá trị);
-            case (embedded)
-                :Set Param.pyIterationType = "embedded";
-                :Set Param.pyIterationTarget = StepPage của Step 14;
-            case (page)
-                :Set Param.pyIterationType = "page";
-                :Set Param.pyIterationTarget = "";
-            case (repeat)
-                :Set Param.pyIterationType = "repeat";
-                :Set Param.pyIterationTarget = "";
-            endswitch
-            :Gọi Activity con;
-        else (No)
-            :Thực thi Method của Step 14 (vd: Property-Set);
-        endif
-        ' === KẾT THÚC LOGIC 'CALL' (OUTER) ===
-    endif
+note left of DataPage
+  Doc sections:
+  - Data pages (scope, types, refresh)
+  - Data page instances & parameters
+end note
 
-    :PHỤC HỒI (POP) các biến lặp cũ (của vòng lặp trước đó, nếu có);
+note right of DataTransform
+  Doc sections:
+  - Data Transforms (actions: Set, Remove, ForEach, Append, MapTo, AutoMap, Apply, Sort, UpdatePage, When)
+end note
 
-endwhile (No)
+note top of Activity
+  Doc sections:
+  - Activities (steps, methods/instructions, types, libraries)
+end note
 
-:Kết thúc;
-stop
 @enduml

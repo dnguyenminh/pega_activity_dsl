@@ -1,0 +1,13 @@
+I have analyzed the code and found the root cause of the test failures in `DataTransformTest.groovy`.
+The issue was that `DataTransformWhenBlock` and `DataTransformForEachBlock` were missing methods for nested operations like `when`, `forEach`, `remove`, and `appendTo`.
+This was causing `MissingMethodException` in tests with nested blocks.
+
+I have applied a fix to `c:\projects\groovy\pega_activity_dsl2\src\main\groovy\com\pega\dsl\PegaDeveloperUtilitiesDsl.groovy` by adding the missing methods to these classes.
+I am confident that this fix will resolve the test failures.
+
+I have been unable to run the tests to verify the fix due to environment restrictions. All my attempts to run `gradlew test`, `gradle.bat test`, or `java` directly have been blocked.
+
+Please run the tests on your end to verify the fix.
+
+[Update] I am still unable to run the tests. The environment is blocking the execution of the test commands.
+I have already applied the fix to the code. Please verify the fix on your end.

@@ -5,18 +5,30 @@ import java.util.Date
 
 /** Minimal ClipboardProperty implementation used for base-class defaults. */
 class SimpleClipboardProperty implements ClipboardProperty {
-    private Object value
+    Object value
     String name
     ClipboardPropertyType type
     // Backwards-compatible constructor: allow constructing with just a value
+    // Pega stores simple property data as String by default; keep STRING as default type
     SimpleClipboardProperty(Object v = null) {
-        this.name = null; this.value = v; this.type = ClipboardPropertyType.STRING
-        try { println "DEBUG SimpleClipboardProperty:<init> value=${v}, type=${v?.getClass()?.name}" } catch(Exception ignore) {}
+        this.name = null
+        this.value = v
+        this.type = ClipboardPropertyType.STRING
+        try { println "DEBUG SimpleClipboardProperty:<init> value=${v}, type=${this.type}" } catch(Exception ignore) {}
     }
-    // Named property constructor: require explicit args to avoid ambiguity with single-arg String values
+
+    // Convenience named constructor: keep STRING as default type unless caller supplies explicit type
+    SimpleClipboardProperty(String name, Object v) {
+        this.name = name
+        this.value = v
+        this.type = ClipboardPropertyType.STRING
+        try { println "DEBUG SimpleClipboardProperty:<init> name=${name}, value=${v}, type=${this.type}" } catch(Exception ignore) {}
+    }
+
+    // Named property constructor: explicit args to avoid ambiguity
     SimpleClipboardProperty(String name, Object v, ClipboardPropertyType type) {
         this.name = name; this.value = v; this.type = type
-        try { println "DEBUG SimpleClipboardProperty:<init> name=${name}, value=${v}, type=${v?.getClass()?.name}" } catch(Exception ignore) {}
+        try { println "DEBUG SimpleClipboardProperty:<init> name=${name}, value=${v}, type=${type}" } catch(Exception ignore) {}
     }
 
     void add(Object aValue) {
@@ -45,7 +57,7 @@ class SimpleClipboardProperty implements ClipboardProperty {
     ClipboardProperty get(int aIndex) {
         if(this.value instanceof List) {
             def v = ((List)this.value)[aIndex]
-            return new SimpleClipboardProperty(v)
+            return new Page(v)
         }
         return null
     }
@@ -53,7 +65,7 @@ class SimpleClipboardProperty implements ClipboardProperty {
     ClipboardProperty get(String aIndex) {
         if(this.value instanceof Map) {
             def v = ((Map)this.value)[aIndex]
-            return new SimpleClipboardProperty(v)
+            return new Page(v)
         }
         return null
     }
@@ -91,7 +103,7 @@ class SimpleClipboardProperty implements ClipboardProperty {
     ClipboardPage getParent() { return null }
 
     ClipboardPage getPageValue() {
-        if(this.value instanceof SimpleClipboardPage) return (SimpleClipboardPage)this.value
+        if(this.value instanceof AbstractClipboardPage) return (AbstractClipboardPage)this.value
         if(this.value instanceof Map) return new SimpleClipboardPage((Map)this.value)
         return null
     }
@@ -128,10 +140,10 @@ class SimpleClipboardProperty implements ClipboardProperty {
 
     Iterator<ClipboardProperty> iterator() {
         if(this.value instanceof List) {
-            return ((List)this.value).collect { new SimpleClipboardProperty(it) }.iterator()
+            return ((List)this.value).collect { new Page(it) }.iterator()
         }
         if(this.value instanceof Map) {
-            return ((Map)this.value).collect { k,v -> new SimpleClipboardProperty(v) }.iterator()
+            return ((Map)this.value).collect { k,v -> new Page(v) }.iterator()
         }
         return [].iterator()
     }

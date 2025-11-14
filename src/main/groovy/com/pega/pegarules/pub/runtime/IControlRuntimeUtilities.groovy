@@ -1,0 +1,81 @@
+package com.pega.pegarules.pub.runtime
+
+import com.pega.pegarules.pub.clipboard.ClipboardPage
+import com.pega.pegarules.pub.clipboard.ClipboardProperty
+import com.pega.pegarules.pub.generator.IAssemblyStreamSupport
+import com.pega.pegarules.priv.runtime.IAutoStreamRuntime
+import com.pega.pegarules.priv.runtime.ISectionRuntime
+import com.pega.pegarules.priv.runtime.PegaStreamAPI
+import com.pega.pegarules.pub.util.HashStringMap
+
+interface IControlRuntimeUtilities {
+    String COPYRIGHT = "Copyright (c) 2009, 2015  Pegasystems Inc."
+    String VERSION = "8.4.0"
+
+    void addControlMarkupForNonVTable(PublicAPI tools, String propName, int maxLength, boolean bIsActionType, String methodName, String pyStringType, String pyEditValidate, String pyOnInput, String valueListPropName, boolean bIsValueList)
+    void addControlMarkupForVTable(PublicAPI tools, String propName, String methodName, String valueListPropName, boolean bIsValueList, boolean shouldAddControlMarkup)
+    void addControlMetaData(StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, String propName, String controlName, ClipboardPage cellPage, boolean bLocalize)
+    boolean buildParameterPage(ClipboardProperty paramList, String paramPageName, StringBuffer whenCondition, StreamBuilderToolKit tools)
+    void generateCodeForAJAXTracking(String requiredWhen, String requiredWhenROC, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto)
+    String generateDisabledWhen(ClipboardPage cellPage, ClipboardPage modePage, ClipboardPage paramPage, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto)
+    void generateMarkupForControlWidth(String ctrlSpecifySize, String ctrlWidth, String ctrlWidthUnits, StreamBuilderToolKit tools)
+    void generateMarkupForCrossScripting(StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, String activeValue, String placeHolderR, boolean isPlaceHolderConfigured)
+    void generateMarkupForTextStyle(String textStyle, StreamBuilderToolKit tools)
+    void generateMetaDataForDateRangeLabel(ClipboardPage cellPageT, IUIComponentMetadata startDatePage, PegaStreamAPI pega, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, HashStringMap additionalArgs)
+    void generateMetadataForHelperTextType(IUIComponentMetadata modePage1, boolean localize, String ctrlHelperTextType, PegaStreamAPI pega, StreamBuilderToolKit tools, String repeatIndx, IAutoStreamRuntime pzAuto)
+    void generateMetadataForPatternAndFormat(IUIComponentMetadata modePage1, String formatType, boolean isPassword, boolean pyDisplayReadOnlyFormatting)
+    void generateMetadataForTextAlign(IUIComponentMetadata modePage1, String ctrlTextAlign)
+    void generateMetadataForTextStyle(IUIComponentMetadata modePage1, String textStyle)
+    void generateMetadataForTooltip(IUIComponentMetadata modePage1, boolean localize, String ctrlTooltip, PegaStreamAPI pega, StreamBuilderToolKit tools, String repeatIndx, IAutoStreamRuntime pzAuto)
+    void generateMetaDataForWidth(IUIComponentMetadata modePage1, String ctrlSpecifySize, String ctrlWidth, String ctrlWidthUnits)
+    void generateMetadatDateRangeForOfflineDefault(IUIComponentMetadata startDatePage, ClipboardPage runTimeParamPage, PegaStreamAPI pega, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, ClipboardPage paramPage, HashStringMap additionalArgs)
+    void generateMetadatForOfflineDefault(IUIComponentMetadata modePage1, ClipboardPage runTimeParamPage, PegaStreamAPI pega, StreamBuilderToolKit tools, String repeatIndx, IAutoStreamRuntime pzAuto, ClipboardPage paramPage)
+    String getActivePropertyName(String propName, StreamBuilderToolKit tools)
+    String getActiveValueAfterApplyingNumberFormt(boolean numberFormatTemplate, boolean isDecimalOrDouble, String activeValue)
+    Map<String, com.pega.pegarules.priv.generator.AssemblyParameters> getAssemblyParamsMap(Map<String, String> oControlPathsMap, StreamBuilderToolKit tools, Map<String, String[]> oCellRuntimeParamsMap, String pxUniqueStreamHash)
+    String getAutomationID(ClipboardPage cellPage, ISectionRuntime pzSection)
+    String getClassForTextAlign(String textAlign)
+    String getClassForTextStyle(String textStyle, String textAlign, boolean isCheckboxOrRadio, String pyFormatType)
+    String getClassValueForTextAlign(StreamBuilderToolKit tools, String ctrlTextAlign)
+    String getControlFormatForNone()
+    String getControlFormatForText(String appendStr, String prependStr, boolean bObfuscate, boolean bLocalize, PublicAPI tools)
+    IUIComponentMetadata getControlMetaData(StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, String propName, String controlName, ClipboardPage cellPage, boolean bLocalize)
+    String getEntryHandle(boolean isEditable, StreamBuilderToolKit tools)
+    void geterateClientWhenDiv(String strDisplayWhen, String strReadOnlyWhen, boolean bAddIndex, boolean bAddSubscript, String strRefreshWhen, ClipboardPage paramPage, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto)
+    String getFieldValueorPropValue(String propRef, String fieldName, boolean bLocalize, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, String repeatIndx)
+    String getHighlightValue(String highlight)
+    String getObfuscateWhenCondition(ClipboardPage modePageData2)
+    String getParametersAppendedFieldValue(ClipboardPage cellPage, String resolvedFieldValue, String fieldValueProp, String fieldValueName, StreamBuilderToolKit tools, boolean bLocalise)
+    String getParametersAppendedFieldValueForNonVtable(ClipboardPage cellPage, String resolvedFieldValue, String fieldValueProp, boolean bLocalise)
+    String getPatternForTextInput(String formatType, boolean pyDisplayReadOnlyFormatting, boolean isPassword)
+    String getPlaceHolder(String placeHolder)
+    String getPropertyOrLiteralValue(String appender, PublicAPI tools, boolean escapeQuoteEncoding)
+    String getPropID(boolean isValueListParam, String pzPLPropName, String propName)
+    String getQuotedString(String string)
+    String getTextAlign(String ctrlTextAlign)
+    String getTextAlignValue(String ctrlTextAlign)
+    String getTextStyle(String textStyle)
+    String getTypeForTextInput(String formatType, boolean pyDisplayReadOnlyFormatting, boolean isPassword)
+    String getUpdatedPropName(String propName)
+    String getValidationString(ClipboardPage cellPage, ClipboardPage modePageData1)
+    boolean getWhenIdentifierMetadata(IUIComponentMetadata modePage, ClipboardPage modeDataPage, String controlUniqueHash, IAutoStreamRuntime pzAuto, boolean ignoreRequiredWhen)
+    boolean hasPostValueBehavior(ClipboardPage cellPage)
+    boolean isActionConfigured(ClipboardProperty behaviorProps, String action)
+    boolean isControlEditable(com.pega.pegarules.pub.runtime.ControlsInfo.ControlEditOption ctrlEditiablity, IAutoStreamRuntime pzAuto, String cellReadOnlyCond, ClipboardPage modePageData2, String propName, StreamBuilderToolKit tools)
+    boolean isDecimalOrDouble(String propType)
+    boolean isNumberFormatTemplateApplicable(String propType, String formatType, boolean pyDisplayReadOnlyFormatting)
+    boolean isOffline(StreamBuilderToolKit tools)
+    boolean isPassword(String propType)
+    void markUpForReadOnlyFormatting(boolean bOptimizedMarkup, String propRef, String activeValue, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto)
+    ClipboardPage mergeControlPage(ClipboardPage pg_Control, ClipboardPage pg_thisCell, StreamBuilderToolKit tools)
+    String registerLiteral(String propRef, String fieldName, boolean bLocalize, PegaStreamAPI pega, StreamBuilderToolKit tools, String repeatIndx, IAutoStreamRuntime pzAuto, boolean returnValue)
+    boolean registerMetadataForMinchars(IUIComponentMetadata modePage1, String ctrlMinChars, StringBuffer pegaValidation, boolean addedValidation)
+    String registerNonLiteral(String propRef, String fieldName, boolean bLocalize, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, boolean returnValue)
+    void registerObfuscatedWhen(IUIComponentMetadata modePage, String pyObfuscated, String pyObfuscatedWhen, String strObfuscatedWhenCode, String pyObfuscatedWhen_Ctrl, String strObfuscatedWhenCode_Ctrl, String controlUniqueHash, IAutoStreamRuntime pzAuto)
+    String registerPropertyReference(String propRef, String fieldName, boolean bLocalize, StreamBuilderToolKit tools, IAutoStreamRuntime pzAuto, String repeatIndx, PegaStreamAPI pega, boolean returnValue)
+    void setActivePropertyForReadOnly(ClipboardPage modePage2, StreamBuilderToolKit tools)
+    ExpressionPojo setExpressionId(IUIComponentMetadata modePage, boolean ignoreRequiredWhen, ClipboardPage modeDataPage, IAutoStreamRuntime pzAuto, String controlUniqueHash, String expressionId)
+    boolean shouldAddControlMarkup(ClipboardPage pg_thisCell, PublicAPI tools, ClipboardPage pg_thisModePage, ClipboardPage mergedCtrlPage)
+    String unescapeString(String str)
+    void validatePropertyExistence(String propName, String updatedPropName, String propClass, ClipboardPage cellPage, PublicAPI tools, IAssemblyStreamSupport fuaInsObject)
+}

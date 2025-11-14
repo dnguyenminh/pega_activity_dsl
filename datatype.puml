@@ -139,6 +139,9 @@ package "com.pega.pegarules.pub.clipboard" {
     class PageList extends AbstractClipboardProperty {
         value: java.util.List<ClipboardPage>
     }
+    class "Code-Pega-List" extends Page {
+        +pxResults: PageList
+    }
     class PageGroup extends AbstractClipboardProperty {
         value: java.util.Map<String, ClipboardPage>
     }

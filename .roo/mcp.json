@@ -1,0 +1,47 @@
+{
+    "mcpServers": {
+        "puppeteer": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-puppeteer"
+            ],
+            "env": {
+                "MCP_LLM_PROVIDER": "openai",
+                "MCP_LLM_OPENAI_API_BASE_URL": "http://localhost:1234/v1",
+                "MCP_LLM_MODEL_NAME": "qwen3-4b-instruct-2507",
+                "MCP_LLM_OPENAI_API_KEY": "lm-studio"
+            },
+            "alwaysAllow": [
+                "puppeteer_navigate",
+                "puppeteer_screenshot",
+                "puppeteer_evaluate"
+            ]
+        },
+        "plantuml": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "plantuml-mcp-server"
+            ],
+            "env": {
+                "PLANTUML_SERVER_URL": "https://www.plantuml.com/plantuml"
+            },
+            "alwaysAllow": [
+                "generate_plantuml_diagram"
+            ]
+        },
+        "terminal": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "mcp-cli-exec"
+            ],
+            "env": {},
+            "alwaysAllow": [
+                "cli-exec",
+                "cli-exec-raw"
+            ]
+        }
+    }
+}
