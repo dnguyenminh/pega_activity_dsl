@@ -56,16 +56,17 @@ class ActivityBuilder {
         if (args.length == 1) {
             return [string: s, map: [:]]
         }
-        if (args.length >= 2) {
-            def second = args[1]
-            if (second == null) {
-                return [string: s, map: [:]]
-            }
-            if (second instanceof Map) {
-                return [string: s, map: (Map) second]
-            }
-            return null
+        // At this point, args is non-null and has length > 1 (earlier cases returned).
+        // Proceed to inspect the second element without a separate conditional to avoid
+        // an unreachable branch in compiled bytecode (keeps behavior identical).
+        def second = args[1]
+        if (second == null) {
+            return [string: s, map: [:]]
         }
+        if (second instanceof Map) {
+            return [string: s, map: (Map) second]
+        }
+        return null
         // Defensive final return to satisfy static analysis; normally unreachable.
         return null
     }
