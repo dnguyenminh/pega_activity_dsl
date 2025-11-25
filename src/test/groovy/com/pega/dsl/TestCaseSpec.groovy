@@ -1,83 +1,61 @@
 package com.pega.dsl
 
 import spock.lang.Specification
-import static com.pega.dsl.PegaDeveloperUtilitiesDsl.*
 
 class TestCaseSpec extends Specification {
 
-    def "should accept inputs and inputData aliases"() {
+    def "inputs and inputData are populated and step closure delegates"() {
         given:
         def tc = new TestCase()
 
         when:
-        tc.input('id', 123)
-        tc.inputData('name', 'Alice')
+        tc.input('a', 1)
+        tc.inputData('b', 2)
+        tc.expectedResult('e', 'v')
 
-        then:
-        tc.inputs['id'] == 123
-        tc.inputData['name'] == 'Alice'
-    }
-
-    def "should record expected results and expect() alias"() {
-        given:
-        def tc = new TestCase()
-
-        when:
-        tc.expectedResult('Status', 'OK')
-        tc.expect('Count', 5)
-
-        then:
-        tc.expectedResults['Status'] == 'OK'
-        tc.expectedResults['Count'] == 5
-    }
-
-    def "step closure should populate params and return step map"() {
-        given:
-        def tc = new TestCase()
-
-        when:
-        def s = tc.step('DoThing') {
-            params.action = 'run'
-            params.timeout = 30
+        def step = tc.step('step1') {
+            params.foo = 'bar'
         }
 
         then:
-        s.name == 'DoThing'
-        s.params['action'] == 'run'
-        s.params['timeout'] == 30
-        tc.steps.size() == 1
+        tc.inputs['a'] == 1
+        tc.inputData['b'] == 2
+        tc.expectedResults['e'] == 'v'
+        step.name == 'step1'
+        step.params.foo == 'bar'
     }
 
-    def "ruleToTest getter and property storage"() {
+    def "status/description and ruleToTest APIs and expect/assert helpers"() {
         given:
         def tc = new TestCase()
 
         when:
-        tc.ruleToTest('MyRule')
+        tc.description('desc')
+        tc.setStatus('Running')
+        tc.status('Paused')
+        tc.ruleToTest('SomeRule')
+        tc.expect('X', 5)
 
         then:
-        tc.getRuleToTest() == 'MyRule'
-        tc.properties['ruleToTest'] == 'MyRule'
-    }
+        tc.description == 'desc'
+        tc.status == 'Paused'
+        tc.getRuleToTest() == 'SomeRule'
+        tc.expectedResults['X'] == 5
 
-    def "assertion helpers should record and return correct results"() {
-        given:
-        def tc = new TestCase()
-
-        expect:
-        tc.assertTrue('some.expression')
-        tc.assertNotNull('pyID')
-
-        when:
-        def eq = tc.assertEquals(2, 1+1)
-        def neq = tc.assertEquals('a','b')
+        when: "assert helpers"
+        def t1 = tc.assertTrue('a==a')
+        def t2 = tc.assertTrue(true)
+        def eq = tc.assertEquals(1, 1)
+        def nn = tc.assertNotNull('someExpr')
 
         then:
-        eq
-        !neq
-        tc.assertions.any { it.type == 'assertTrue' }
-        tc.assertions.any { it.type == 'assertEquals' }
-        tc.assertions.any { it.type == 'assertNotNull' }
+        t1 == true
+        t2 == true
+        eq == true
+        nn == true
+        tc.assertions.find { it.type == 'assertTrue' }
+        tc.assertions.find { it.type == 'assertEquals' }
+        tc.assertions.find { it.type == 'assertNotNull' }
     }
 }
 

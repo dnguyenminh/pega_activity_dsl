@@ -153,7 +153,7 @@ class Main {
             // Create a complete application
             println "\n=== Creating Complete Application ==="
             def completeApp = application('CompleteDemo') {
-                version '1.0.0'
+                setVersion '1.0.0'
                 description 'Complete demo application showcasing all DSL features'
                 setting 'environment', 'demo'
                 setting 'debug', true

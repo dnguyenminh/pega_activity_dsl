@@ -37,7 +37,8 @@
                 "-y",
                 "mcp-cli-exec"
             ],
-            "env": {},
+            "env": {
+            },
             "alwaysAllow": [
                 "cli-exec",
                 "cli-exec-raw"

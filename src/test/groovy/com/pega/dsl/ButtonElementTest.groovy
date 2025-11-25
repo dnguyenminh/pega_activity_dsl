@@ -3,46 +3,157 @@ package com.pega.dsl
 import spock.lang.Specification
 
 class ButtonElementTest extends Specification {
-    def "should set style using helpers"() {
+
+    def "should create a button element"() {
         when:
-        def btn = new ButtonElement()
-        btn.primary()
-        def btn2 = new ButtonElement()
-        btn2.secondary()
-        def btn3 = new ButtonElement()
-        btn3.tertiary()
-        def btn4 = new ButtonElement()
-        btn4.simple()
-        def btn5 = new ButtonElement()
-        btn5.strong()
+        def button = new ButtonElement()
+
         then:
-        btn.style == "Primary"
-        btn2.style == "Secondary"
-        btn3.style == "Tertiary"
-        btn4.style == "Simple"
-        btn5.style == "Strong"
+        button.type == 'Button'
+        button.style == 'Standard'
     }
 
-    def "should set visibility and condition"() {
+    def "should set visibility"() {
+        given:
+        def button = new ButtonElement()
+
         when:
-        def btn = new ButtonElement()
-        btn.visible(".IsVisible == true")
+        button.visible 'some_condition'
+
         then:
-        btn.visibility == "If"
-        btn.condition == ".IsVisible == true"
+        button.visibility == 'If'
+        button.condition == 'some_condition'
     }
 
-    def "should set action using helpers"() {
+    def "should set required property"() {
+        given:
+        def button = new ButtonElement()
+
         when:
-        def btn = new ButtonElement()
-        btn.localAction("LocalAction1")
-        def btn2 = new ButtonElement()
-        btn2.flowAction("FlowAction1")
-        def btn3 = new ButtonElement()
-        btn3.activity("Activity1")
+        button.required()
+
         then:
-        btn.action == "LocalAction1"
-        btn2.action == "FlowAction1"
-        btn3.action == "Activity1"
+        button.properties['required']
+    }
+
+    def "should set readOnly property"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.readOnly()
+
+        then:
+        button.properties['readOnly']
+    }
+
+    def "should set disabled property"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.disabled()
+
+        then:
+        button.properties['disabled']
+    }
+
+    def "should set primary style"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.primary()
+
+        then:
+        button.style == 'Primary'
+    }
+
+    def "should set secondary style"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.secondary()
+
+        then:
+        button.style == 'Secondary'
+    }
+    
+    def "should set tertiary style"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.tertiary()
+
+        then:
+        button.style == 'Tertiary'
+    }
+    
+    def "should set simple style"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.simple()
+
+        then:
+        button.style == 'Simple'
+    }
+
+    def "should set strong style"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.strong()
+
+        then:
+        button.style == 'Strong'
+    }
+
+    def "should set local action"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.localAction 'MyLocalAction'
+
+        then:
+        button.action == 'MyLocalAction'
+    }
+
+    def "should set flow action"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.flowAction 'MyFlowAction'
+
+        then:
+        button.action == 'MyFlowAction'
+    }
+
+    def "should set activity action"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.activity 'MyActivity'
+
+        then:
+        button.action == 'MyActivity'
+    }
+
+    def "should set the label"() {
+        given:
+        def button = new ButtonElement()
+
+        when:
+        button.label = 'Click Me'
+
+        then:
+        button.label == 'Click Me'
     }
 }

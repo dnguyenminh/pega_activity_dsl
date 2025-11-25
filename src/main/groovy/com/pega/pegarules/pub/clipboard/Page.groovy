@@ -1,17 +1,32 @@
 package com.pega.pegarules.pub.clipboard
 
 /** Thin wrapper representing a page-valued property. */
-class Page extends AbstractClipboardPage {
+class Page extends SimpleClipboardPage implements ClipboardPage {
+
+    boolean isClipboardPage() { return true }
+
+    @Override
+    String getName() { return super.getName() }
+
+
     Page(Object v = null) {
         super()
         if (v instanceof ClipboardPage) {
-            v.entrySet().each { entry ->
-                this.putAt(entry.getKey(), entry.getValue())
+            def src = (ClipboardPage)v
+            src.entrySet().each { entry ->
+                def key = entry.getKey()
+                def val = null
+                // Prefer using AbstractClipboardPage.getPropertyObject when available to obtain normalized values
+                if (src instanceof AbstractClipboardPage) {
+                    val = ((AbstractClipboardPage)src).getPropertyObject(key)
+                } else {
+                    try { val = src.getProperty(key)?.getPropertyValue() } catch(Exception ignored) { val = entry.getValue() }
+                }
+                this.putAt(key, val)
             }
         } else if (v instanceof Map) {
             this.putAll(v)
         }
-        this.type = ClipboardPropertyType.PAGE
     }
 
     // explicit typed constructors to avoid ambiguous bytecode for super(...) calls
@@ -22,31 +37,52 @@ class Page extends AbstractClipboardPage {
     Page(List props) {
         super(props)
     }
-    Page(String name, Object v, ClipboardPropertyType type = ClipboardPropertyType.PAGE) {
+    Page(String name, Object v, ClipboardPropertyType type = ClipboardPropertyType.PAGE) { // 'type' parameter is now unused.
         super()
         try {
             if (v instanceof Map) {
-                def tmp = new SimpleClipboardPage((Map)v)
-                this.copyFrom(tmp)
+                this.putAll((Map)v)
             } else if (v instanceof List) {
-                def tmp = new SimpleClipboardPage((List)v)
-                this.copyFrom(tmp)
+                // Each element in list may be a Map or ClipboardPage descriptor
+                ((List)v).eachWithIndex { e, idx ->
+                    if (e instanceof Map) this.putAll((Map)e)
+                    else if (e instanceof ClipboardPage) {
+                        def src = (ClipboardPage)e
+                        src.entrySet().each { entry ->
+                            def key = entry.getKey()
+                            def val = (src instanceof AbstractClipboardPage) ? ((AbstractClipboardPage)src).getPropertyObject(key) : (src.getProperty(key)?.getPropertyValue() ?: entry.getValue())
+                            this.putAt(key, val)
+                        }
+                    } else {
+                        // raw values appended to 'items'
+                        def existing = this.getPropertyObject("items")
+                        if (!(existing instanceof List)) existing = []
+                        existing << e
+                        this.putAt("items", existing)
+                    }
+                }
             } else if (v instanceof ClipboardPage) {
-                this.copyFrom((ClipboardPage)v)
+                def src = (ClipboardPage)v
+                src.entrySet().each { entry ->
+                    def key = entry.getKey()
+                    def val = (src instanceof AbstractClipboardPage) ? ((AbstractClipboardPage)src).getPropertyObject(key) : (src.getProperty(key)?.getPropertyValue() ?: entry.getValue())
+                    this.putAt(key, val)
+                }
             }
         } catch(Exception ignored) {}
         this.pageName = name
-        this.type = type
     }
 
     Page(ClipboardPage p) {
         super()
         if (p != null) {
-            p.entrySet().each { entry ->
-                this.putAt(entry.getKey(), entry.getValue())
+            def src = (ClipboardPage)p
+            src.entrySet().each { entry ->
+                def key = entry.getKey()
+                def val = (src instanceof AbstractClipboardPage) ? ((AbstractClipboardPage)src).getPropertyObject(key) : (src.getProperty(key)?.getPropertyValue() ?: entry.getValue())
+                this.putAt(key, val)
             }
         }
-        this.type = ClipboardPropertyType.PAGE
     }
 
     Page(String name, ClipboardPage p) {
@@ -57,6 +93,4 @@ class Page extends AbstractClipboardPage {
             }
         }
         this.pageName = name
-        this.type = ClipboardPropertyType.PAGE
-    }
-}
+    }}

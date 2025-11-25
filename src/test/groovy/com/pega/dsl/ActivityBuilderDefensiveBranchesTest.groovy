@@ -249,6 +249,42 @@ class ActivityBuilderDefensiveBranchesTest extends Specification {
         assert thrown == null || thrown instanceof RuntimeException
     }
 
+    def "parseStringAndMapArgs handles null second argument explicitly"() {
+        given:
+        def b = new ActivityBuilder(new Activity())
+
+        when:
+        def result = b.&parseStringAndMapArgs(['a string', null] as Object[])
+
+        then:
+        result.string == 'a string'
+        result.map.isEmpty()
+    }
+
+    def "parseStringAndMapArgs handles null second argument explicitly"() {
+        given:
+        def b = new ActivityBuilder(new Activity())
+
+        when:
+        def result = b.&parseStringAndMapArgs(['a string', null] as Object[])
+
+        then:
+        result.string == 'a string'
+        result.map.isEmpty()
+    }
+
+    def "parseStringAndMapArgs handles null second argument explicitly"() {
+        given:
+        def b = new ActivityBuilder(new Activity())
+
+        when:
+        def result = b.&parseStringAndMapArgs(['a string', null] as Object[])
+
+        then:
+        result.string == 'a string'
+        result.map.isEmpty()
+    }
+
     def "propertySet when delegate is this"() {
         given:
         def activity = new Activity()
@@ -268,5 +304,17 @@ class ActivityBuilderDefensiveBranchesTest extends Specification {
         step.parameters['param1'] == 'value1'
         cleanup:
         PegaDslCore.CURRENT_DELEGATE.remove()
+    }
+
+    def "parseStringAndMapArgs handles null second argument"() {
+        given:
+        def b = new ActivityBuilder(new Activity())
+
+        when:
+        def result = b.&parseStringAndMapArgs(['a string', null] as Object[])
+
+        then:
+        result.string == 'a string'
+        result.map.isEmpty()
     }
 }

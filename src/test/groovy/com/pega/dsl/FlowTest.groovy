@@ -147,4 +147,17 @@ class FlowTest extends Specification {
         then:
         result == builder
     }
+
+    def "should get shape by name"() {
+        when:
+        def flow = flow('TestFlow') {
+            start('StartShape')
+            assignment('AssignmentShape')
+        }
+
+        then:
+        flow.getShape('StartShape').name == 'StartShape'
+        flow.getShape('AssignmentShape').name == 'AssignmentShape'
+        flow.getShape('NonExistentShape') == null
+    }
 }

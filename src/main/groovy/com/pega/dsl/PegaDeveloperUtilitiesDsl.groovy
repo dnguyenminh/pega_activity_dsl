@@ -1,6 +1,9 @@
 package com.pega.dsl
 
 class PegaDeveloperUtilitiesDsl {
+    // Force load ScriptExtensions which installs global helper methods onto Script.metaClass.
+    // This makes top-level helpers like application(...) and flow(...) available to tests.
+    static final __init = com.pega.dsl.ScriptExtensions.class
     // expose the shared CURRENT_DELEGATE and helpers so existing code that
     // referenced PegaDeveloperUtilitiesDsl.CURRENT_DELEGATE or helper methods
     // keeps working while the canonical implementation lives in PegaDslCore.

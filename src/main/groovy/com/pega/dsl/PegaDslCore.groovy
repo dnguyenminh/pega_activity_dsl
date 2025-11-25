@@ -12,6 +12,8 @@ package com.pega.dsl
  * the current builder delegate stored in CURRENT_DELEGATE.
  */
 class PegaDslCore {
+    // Ensure global script/object helpers are installed early by forcing ScriptExtensions to load
+    static final __initScriptExtensions = com.pega.dsl.ScriptExtensions.class
     // Thread-local used so static helper overloads can forward calls
     // into the current instance delegate when building nested DSL blocks.
     static final ThreadLocal<Object> CURRENT_DELEGATE = new ThreadLocal<>()
@@ -23,8 +25,6 @@ class PegaDslCore {
     // Guard to avoid reentrant forwarding from closure.call -> delegate -> closure.call loops
     static final ThreadLocal<Boolean> FORWARDING = new ThreadLocal<>()
  
-
-
 
 
     // Helper: walk closure.owner chain to find a delegate of a given type.
@@ -61,13 +61,13 @@ class PegaDslCore {
         try { s = java.net.URLDecoder.decode(s, 'UTF-8') } catch (ignored) { }
 
         s = s.replace('&nbsp;', ' ')
-        s = s.replace('&', '&')
-        s = s.replace('<', '<')
-        s = s.replace('>', '>')
-        s = s.replace('"', '"')
+        s = s.replace('&amp;', '&')
+        s = s.replace('&lt;', '<')
+        s = s.replace('&gt;', '>')
+        s = s.replace('&quot;', '"')
         try {
-            s = s.replaceAll('&#(\\d+);') { full, num -> (char) Integer.parseInt(num) as String }
-            s = s.replaceAll('&#x([0-9A-Fa-f]+);') { full, hex -> (char) Integer.parseInt(hex, 16) as String }
+            s = s.replaceAll(/&#(\d+);/) { full, num -> (char) Integer.parseInt(num) as String }
+            s = s.replaceAll(/&#x([0-9A-Fa-f]+);/) { full, hex -> (char) Integer.parseInt(hex, 16) as String }
         } catch (ignored) { }
 
         s = s.replaceAll('\\$eq\\$eq', '==')
@@ -83,15 +83,15 @@ class PegaDslCore {
         try { s = s.replace((char)0x00A0, ' ') } catch (ignored) { }
 
         try {
-            s = s.replaceAll('\\\\u([0-9A-Fa-f]{4})') { full, hex ->
+            s = s.replaceAll(/\\u([0-9A-Fa-f]{4})/) { full, hex ->
                 ((char) Integer.parseInt(hex, 16)).toString()
             }
         } catch (ignoredUnescape) { }
 
         s = s.replaceAll('&&', '&&')
-        s = s.replaceAll('&\\|&', '||')
+        s = s.replaceAll(/&\\|&/, '||')
 
-    s = s.replaceAll('\\(\\)\\s*$', '')
+            s = s.replaceAll(/\(\)\s*$/, '')
     // strip surrounding single/double quotes only when they wrap the entire token
     s = s.replaceAll(/^['"](.*)['"]$/, '$1')
 
@@ -101,60 +101,31 @@ class PegaDslCore {
             s = inner
         }
 
-        s = s.replaceAll('^\\.{2,}', '.')
-        s = s.replaceAll('\\.{2,}', '.')
+        s = s.replaceAll(/^\.{2,}/, '.')
+        s = s.replaceAll(/\.{2,}/, '.')
 
-        s = s.replaceAll('\\s+', ' ').trim()
+        s = s.replaceAll(/\s+/, ' ').trim()
         
         return s
     }
     
     /**
-     * Execute a closure with a provided delegate and install the lightweight
-     * interceptors so nested call/doCall/invoke paths are forwarded to the
-     * intended delegate. This centralizes the thread-local handling used
-     * across builders.
+     * Execute a closure with a provided delegate. Rehydrate the closure so
+     * owner/thisObject/delegate all point to the provided delegate. This
+     * prevents owner-based interception from swallowing calls that should
+     * resolve on the delegate (tests rely on this behaviour).
      */
     static Object callWithDelegate(Object delegate, Closure closure, int resolveStrategy = Closure.DELEGATE_FIRST) {
         if (closure == null) return delegate
         SEQ.incrementAndGet()
-        // Rehydrate closure so owner/thisObject/delegate point to the builder
-        // and execute it directly. Avoid proxy forwarding which caused ambiguous
-        // dispatch and recursion in tests.
         CURRENT_DELEGATE.set(delegate)
         try {
+            // Rehydrate keeps owner/thisObject/delegate consistent for the block
             def target = closure.rehydrate(delegate, delegate, delegate)
             target.resolveStrategy = resolveStrategy
-
-            // Avoid overriding the rehydrated closure's metaClass.call here.
-            // Prefer the per-instance interceptors installed by
-            // installClosureInterceptors(target) which are conservative and
-            // guarded to prevent recursion. Overriding metaClass.call caused
-            // subtle recursion in earlier attempts.
-
-            // For the rehydrated closure we prefer a single, targeted forwarding
-            // path: install a per-instance call forwarder that forwards DSL
-            // style invocations like `call 'Name', [params]` to the builder
-            // delegate. Installing the broader interceptors here created
-            // overlapping forwarding routes which led to recursion in certain
-            // call shapes. Keep the surface minimal and idempotent.
-            try {
-                            // Install only the targeted per-instance call forwarder on the
-                            // rehydrated closure. This avoids overlapping interception paths
-                            // which can produce recursive call forwarding in certain shapes.
-                            // PegaDslCore.installPerInstanceCallForward(target, delegate) // Removed this line
-                            } catch (ignored) { }
-                
-                            // Ensure FORWARDING is set to true before calling the target closure
-                            // to prevent reentrant calls from causing StackOverflowError.
-                            FORWARDING.set(true)
-                            try {
-                                def res = target.call()
-                                return res
-                            } finally {
-                                FORWARDING.remove()
-                            }
-                        } finally {
-                            CURRENT_DELEGATE.remove()
-                        }    }
+            return target.call()
+        } finally {
+            CURRENT_DELEGATE.remove()
+        }
+    }
 }

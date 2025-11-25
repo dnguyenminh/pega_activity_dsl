@@ -6,6 +6,16 @@ class Ruleset extends Rule {
 
     Ruleset() { this.type = 'Ruleset' }
 
+    def version(String v) {
+        super.version(v)
+        return this
+    }
+
+    def setVersion(String v) {
+        super.setVersion(v)
+        return this
+    }
+
     /**
      * Create a nested rule inside this ruleset. This is a compact dispatcher
      * used by the tests which call `rule('activity', 'Name') { ... }`.

@@ -9,13 +9,6 @@ class DataTransformBuilder {
 
     def doCall(Object... args) { this }
 
-    def methodMissing(String name, Object[] args) {
-        if (name == 'call' && args != null && args.length >= 1 && args[0] instanceof String) {
-            return this
-        }
-        throw new MissingMethodException(name, this.class, args)
-    }
-
     def description(String description) {
         transform.description = description
         this

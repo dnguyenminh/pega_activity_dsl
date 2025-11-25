@@ -8,11 +8,12 @@ class FlowBuilder {
     }
 
     def doCall(Object... args) {
-        if (!args) return this
-        if (args.length >= 1 && args[0] instanceof String) {
-            // Conservative: accept "call 'Name'" patterns without side-effects
-            return this
-        }
+        return this
+    }
+    
+    // Explicit call method so the builder can be invoked like a closure:
+    // builder() or builder('someString') — tests expect this behavior.
+    def call(Object... args) {
         return this
     }
     

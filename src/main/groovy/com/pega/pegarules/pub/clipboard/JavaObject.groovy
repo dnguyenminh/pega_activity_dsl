@@ -4,6 +4,5 @@ package com.pega.pegarules.pub.clipboard
 class JavaObject extends SimpleClipboardProperty {
     JavaObject(Map<String, JavaProperty> m = null) {
         super(m)
-        this.type = ClipboardPropertyType.JAVA_OBJECT_GROUP
     }
 }

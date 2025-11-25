@@ -55,7 +55,7 @@ class SectionBuilder {
         return repeatingGrid(pageList, closure)
     }
 
-    def input(String property, String label = '', Closure closure = null) {
+    def input(String property, String label, Closure closure) {
         def inp = new InputElement(property: property, label: label)
         if (closure) {
             closure.delegate = inp
@@ -103,36 +103,49 @@ class SectionBuilder {
     }
 
     def methodMissing(String name, Object[] args) {
-        // Conservative fallback: if a closure.call/doCall accidentally resolves to
-        // this builder (e.g. "call 'X'"), accept it and no-op.
-        try {
-            if (name == 'call' && args != null && args.length >= 1 && args[0] instanceof String) {
-                return this
-            }
-        } catch (ignored) { }
-
-        try {
-            System.err.println("DEBUG: SectionBuilder.methodMissing called raw='${name}' argsCount=${args?.length}")
-            Closure c = null
-            if (args instanceof Closure) {
-                c = (Closure) args
-            } else if (args instanceof Object[] && args.length > 0 && args[args.length - 1] instanceof Closure) {
-                c = (Closure) args[args.length - 1]
-            }
-
-            if (c != null && name) {
-                def candidate = name?.toString()
-                candidate = PegaDslCore.normalizeCandidate(candidate)
-                if (!candidate) return null
-
-                if (candidate.toLowerCase().contains('detailslist')) {
-                    return this.repeatingGrid('.DetailsList', c)
-                }
-
-                def pageList = candidate.startsWith('.') ? candidate : ('.' + candidate)
-                return this.repeatingGrid(pageList, c)
-            }
-        } catch (ignored) { }
+        // Use the extracted helper to map unknown method names to repeatingGrid instances.
+        // Do NOT swallow exceptions here — let unexpected runtime errors propagate so
+        // callers and tests can see failures. If the mapper returns null, fall back
+        // to normal metaClass dispatch.
+        System.err.println("DEBUG: SectionBuilder.methodMissing called name='${name}' argsCount=${args?.length}")
+        def result = mapUnknownMethodToRepeatingGrid(name, args)
+        if (result != null) {
+            return result
+        }
         return metaClass.invokeMethod(this, name, args)
+    }
+
+    /**
+     * Public API: map a candidate name to a RepeatingGridElement using the
+     * normalization rules in PegaDslCore. Returns the created RepeatingGridElement
+     * or null if the candidate cannot be normalized.
+     */
+    def repeatingGridFor(String name, Closure c) {
+        if (!name) return null
+        def candidate = PegaDslCore.normalizeCandidate(name.toString())
+        if (!candidate) return null
+
+        if (candidate.toLowerCase().contains('detailslist')) {
+            return this.repeatingGrid('.DetailsList', c)
+        }
+
+        def pageList = candidate.startsWith('.') ? candidate : ('.' + candidate)
+        return this.repeatingGrid(pageList, c)
+    }
+
+    // Small internal helper used by methodMissing to extract the trailing closure
+    // and delegate to the public repeatingGridFor API.
+    private def mapUnknownMethodToRepeatingGrid(String name, Object[] args) {
+        Closure c = null
+        if (args instanceof Closure) {
+            c = (Closure) args
+        } else if (args instanceof Object[] && args.length > 0 && args[args.length - 1] instanceof Closure) {
+            c = (Closure) args[args.length - 1]
+        }
+
+        if (c != null && name) {
+            return repeatingGridFor(name, c)
+        }
+        return null
     }
 }

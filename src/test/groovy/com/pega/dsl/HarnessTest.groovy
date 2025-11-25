@@ -1,76 +1,108 @@
 package com.pega.dsl
 
 import spock.lang.Specification
-import static com.pega.dsl.PegaDeveloperUtilitiesDsl.*
 
 class HarnessTest extends Specification {
 
-    def "should create harness with basic properties"() {
+    def "should create harness with a name"() {
         when:
-        def harness = harness('MainPortal') {
-            description 'Main portal harness for the application'
-            template 'PortalTemplate'
-        }
+        def harness = new Harness(name: 'NewHarness')
 
         then:
-        harness.name == 'MainPortal'
-        harness.description == 'Main portal harness for the application'
-        harness.template == 'PortalTemplate'
+        harness.name == 'NewHarness'
         harness.type == 'Harness'
     }
 
-    def "should add different types of elements"() {
+    def "should set the template"() {
+        given:
+        def harness = new Harness()
+
         when:
-        def harness = harness('WorkAreaHarness') {
-            header 'AppHeader'
-            workArea 'CaseWorkArea'
-            footer 'AppFooter'
-            navigation 'PrimaryNav'
-            includeSection 'DashboardWidgets'
-        }
+        harness.template 'MyTemplate'
 
         then:
-        harness.elements.size() == 5
-        harness.elements.collect { it.type } == ['Header', 'Work Area', 'Footer', 'Navigation', 'Section']
-        harness.elements.collect { it.content } == ['AppHeader', 'CaseWorkArea', 'AppFooter', 'PrimaryNav', 'DashboardWidgets']
+        harness.template == 'MyTemplate'
     }
 
-    def "should configure element properties using closures"() {
+    def "should add a header element"() {
+        given:
+        def harness = new Harness()
+
         when:
-        def harness = harness('AdvancedHarness') {
-            header('AppHeader') {
-                // Assuming HarnessElement has a 'property' method
-                // property 'style', 'fixed' 
-            }
-        }
+        harness.header 'HeaderSection'
 
         then:
-        // For now, just verify the element is created.
-        // A more detailed test would require HarnessElement to have methods.
         harness.elements.size() == 1
         harness.elements[0].type == 'Header'
+        harness.elements[0].content == 'HeaderSection'
     }
 
-    def "should create a comprehensive portal harness"() {
+    def "should add a workArea element"() {
+        given:
+        def harness = new Harness()
+
         when:
-        def harness = harness('ManagerPortal') {
-            description 'Portal for managers to review and approve work'
-            template 'ManagerTemplate'
-            
-            header 'ManagerHeader'
-            navigation 'ManagerNav'
-            workArea 'ManagerWorkArea'
-            includeSection 'TeamDashboard'
-            includeSection 'QuickLinks'
-            footer 'PortalFooter'
+        harness.workArea 'WorkSection'
+
+        then:
+        harness.elements.size() == 1
+        harness.elements[0].type == 'Work Area'
+        harness.elements[0].content == 'WorkSection'
+    }
+
+    def "should add a footer element"() {
+        given:
+        def harness = new Harness()
+
+        when:
+        harness.footer 'FooterSection'
+
+        then:
+        harness.elements.size() == 1
+        harness.elements[0].type == 'Footer'
+        harness.elements[0].content == 'FooterSection'
+    }
+
+    def "should add a navigation element"() {
+        given:
+        def harness = new Harness()
+
+        when:
+        harness.navigation 'NavSection'
+
+        then:
+        harness.elements.size() == 1
+        harness.elements[0].type == 'Navigation'
+        harness.elements[0].content == 'NavSection'
+    }
+
+    def "should add an includeSection element"() {
+        given:
+        def harness = new Harness()
+
+        when:
+        harness.includeSection 'IncludedSection'
+
+        then:
+        harness.elements.size() == 1
+        harness.elements[0].type == 'Section'
+        harness.elements[0].content == 'IncludedSection'
+    }
+
+    def "should add an element with a closure"() {
+        given:
+        def harness = new Harness()
+
+        when:
+        harness.header('ConfigurableHeader') {
+            readOnly true
         }
 
         then:
-        harness.name == 'ManagerPortal'
-        harness.template == 'ManagerTemplate'
-        harness.elements.size() == 6
-        harness.elements.count { it.type == 'Section' } == 2
-        harness.elements.find { it.type == 'Header' }.content == 'ManagerHeader'
-        harness.elements.find { it.type == 'Work Area' }.content == 'ManagerWorkArea'
+        harness.elements.size() == 1
+        def element = harness.elements[0]
+        element.type == 'Header'
+        element.content == 'ConfigurableHeader'
+        element.readOnly
     }
 }

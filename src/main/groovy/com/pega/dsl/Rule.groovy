@@ -32,8 +32,9 @@ class Rule {
      * Set the rule/version string. Many tests call `version '1.0'` inside
      * application and ruleset builder closures — expose that API here.
      */
-    def version(String v) {
+    def setVersion(String v) {
         this.version = v
+        return this
     }
 
     def property(String key, Object value) {

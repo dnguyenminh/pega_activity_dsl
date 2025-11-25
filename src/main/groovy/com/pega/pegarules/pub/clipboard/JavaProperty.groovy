@@ -4,7 +4,7 @@ package com.pega.pegarules.pub.clipboard
 class JavaProperty extends SimpleClipboardProperty {
     JavaProperty(Object v = null) {
         super(v)
-        this.type = ClipboardPropertyType.JAVA_PROPERTY
+        // this.type = ClipboardPropertyType.JAVA_PROPERTY  // Removed: no such field exists
     }
 
     JavaProperty(String name, Object v) {

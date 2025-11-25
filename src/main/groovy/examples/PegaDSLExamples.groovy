@@ -12,15 +12,14 @@ class PegaDSLExamples {
      */
     def static exampleApplication() {
         return application('CustomerServiceApp') {
-            version '1.0'
+            setVersion '1.0'
             description 'Customer Service Management Application'
             
             setting 'debug.mode', true
             setting 'timeout.session', 3600
             
-            ruleset('CustomerService') {
-                version '01.01.01'
-                description 'Customer Service Core Rules'
+                            ruleset('CustomerService') {
+                                setVersion '01.01.01'                setDescription 'Customer Service Core Rules'
                 
                 // Activity Rule Example
                 rule('activity', 'ProcessCustomerRequest') {
@@ -178,6 +177,9 @@ class PegaDSLExamples {
             
             when(if: '.Priority == null', then: {
                 set '.Priority', '"Medium"'
+                when(if: '.SubPriority == null', then: {
+                    set '.SubPriority', '"Low"'
+                })
             })
             
             when(if: '.RequestType == "Technical Support"', then: {
@@ -193,6 +195,9 @@ class PegaDSLExamples {
             forEach(in: '.Attachments', do: {
                 set '.ProcessedFlag', 'true'
                 set '.ProcessedBy', '@requestor.pyUserIdentifier'
+                when(if: '.Attachment.Type == "Image"', then: {
+                    set '.Attachment.ProcessedType', '"Visual"'
+                })
             })
             
             applyDataTransform 'DT_AuditFields'
@@ -266,15 +271,16 @@ class PegaDSLExamples {
             
             url 'https://api.customercrm.com/v1/customers/{CustomerID}'
             get()
+            post()
             
             authentication 'CRM_OAuth2'
             
             header 'Accept', 'application/json'
             header 'Content-Type', 'application/json'
             
-            requestMapping {
-                map '.CustomerID', 'CustomerID'
-            }
+            requestMapping([
+                CustomerID: '.CustomerID'
+            ])
             
             responseMapping {
                 map 'customer.firstName', '.Customer.FirstName'
@@ -569,8 +575,9 @@ class PegaDSLExamples {
             setDescription 'REST service for customer request operations'
             servicePackage 'CustomerService'
             
-            path '/api/v1/customers/{customerID}/requests'
-            post()
+            path('/api/v1/customers/{customerID}/requests') {
+                get()
+            }
             
             activity 'ProcessCustomerRequestAPI'
             

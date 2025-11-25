@@ -2,33 +2,39 @@ package com.pega.pegarules.pub.clipboard
 
 import java.math.BigDecimal
 import java.util.Date
+import java.util.Objects
 
 /** Minimal ClipboardProperty implementation used for base-class defaults. */
 class SimpleClipboardProperty implements ClipboardProperty {
     Object value
     String name
-    ClipboardPropertyType type
+
     // Backwards-compatible constructor: allow constructing with just a value
     // Pega stores simple property data as String by default; keep STRING as default type
     SimpleClipboardProperty(Object v = null) {
         this.name = null
         this.value = v
-        this.type = ClipboardPropertyType.STRING
-        try { println "DEBUG SimpleClipboardProperty:<init> value=${v}, type=${this.type}" } catch(Exception ignore) {}
+    // debug logging removed - do not print during tests
     }
 
     // Convenience named constructor: keep STRING as default type unless caller supplies explicit type
     SimpleClipboardProperty(String name, Object v) {
         this.name = name
         this.value = v
-        this.type = ClipboardPropertyType.STRING
-        try { println "DEBUG SimpleClipboardProperty:<init> name=${name}, value=${v}, type=${this.type}" } catch(Exception ignore) {}
+    // debug logging removed - do not print during tests
     }
 
     // Named property constructor: explicit args to avoid ambiguity
-    SimpleClipboardProperty(String name, Object v, ClipboardPropertyType type) {
-        this.name = name; this.value = v; this.type = type
-        try { println "DEBUG SimpleClipboardProperty:<init> name=${name}, value=${v}, type=${type}" } catch(Exception ignore) {}
+    SimpleClipboardProperty(String name, Object v, int type) { // 'type' parameter is now unused.
+        this.name = name; this.value = v;
+    // debug logging removed - do not print during tests
+    }
+
+    // Accept enum typed constructor for convenience so callers using ClipboardPropertyType can pass it directly
+    SimpleClipboardProperty(String name, Object v, com.pega.pegarules.pub.clipboard.ClipboardPropertyType type) {
+        this(name, v)
+        // current implementation ignores explicit type; this keeps behaviour consistent
+    // debug logging removed - do not print during tests
     }
 
     void add(Object aValue) {
@@ -57,7 +63,12 @@ class SimpleClipboardProperty implements ClipboardProperty {
     ClipboardProperty get(int aIndex) {
         if(this.value instanceof List) {
             def v = ((List)this.value)[aIndex]
-            return new Page(v)
+            if (v instanceof Map || v instanceof ClipboardPage) {
+                // wrap Page into a ClipboardProperty wrapper so callers receive a ClipboardProperty
+                return new SimpleClipboardProperty(new Page(v))
+            } else {
+                return new SimpleClipboardProperty(v)
+            }
         }
         return null
     }
@@ -65,7 +76,12 @@ class SimpleClipboardProperty implements ClipboardProperty {
     ClipboardProperty get(String aIndex) {
         if(this.value instanceof Map) {
             def v = ((Map)this.value)[aIndex]
-            return new Page(v)
+            if (v instanceof Map || v instanceof ClipboardPage) {
+                // wrap Page into a ClipboardProperty wrapper
+                return new SimpleClipboardProperty(new Page(v))
+            } else {
+                return new SimpleClipboardProperty(v)
+            }
         }
         return null
     }
@@ -103,12 +119,71 @@ class SimpleClipboardProperty implements ClipboardProperty {
     ClipboardPage getParent() { return null }
 
     ClipboardPage getPageValue() {
-        if(this.value instanceof AbstractClipboardPage) return (AbstractClipboardPage)this.value
-        if(this.value instanceof Map) return new SimpleClipboardPage((Map)this.value)
+        // If the stored value is already a ClipboardPage (or Page), return it.
+        if (this.value instanceof ClipboardPage) return (ClipboardPage)this.value
+        // Convert AbstractClipboardPage / Map into Page so callers receive Page instances
+        if (this.value instanceof AbstractClipboardPage) return new Page((ClipboardPage)this.value)
+        if (this.value instanceof Map) return new Page((Map)this.value)
         return null
     }
 
-    Object getPropertyValue() { return value }
+    Object getPropertyValue() {
+        
+        // Aggressively normalize property values to Page or List<Page> where appropriate.
+        def v = this.value
+        // Unwrap nested ClipboardProperty layers first (best-effort).
+        try {
+            while (v instanceof ClipboardProperty) {
+                v = ((ClipboardProperty)v).getPropertyValue()
+            }
+        } catch(Exception ignored) { /* continue with what we have */ }
+
+        // If it's already a Page, return it (robust check for classloader issues)
+        // If it's already a Page, return it (robust check for classloader issues)
+        if (v instanceof Page) {
+            return v
+        }
+        if (v != null) {
+            def vClass = v.getClass()
+            if (vClass != null && vClass.name == 'com.pega.pegarules.pub.clipboard.Page') {
+                return v
+            }
+        }
+        // If it's any ClipboardPage, convert to Page (ensure AbstractClipboardPage -> Page)
+        if (v instanceof ClipboardPage) {
+            return new Page((ClipboardPage)v)
+        }
+        // If it's an AbstractClipboardPage fallback, convert to Page
+        if (v instanceof AbstractClipboardPage) {
+            return new Page((ClipboardPage)v)
+        }
+        // If it's a Map, convert to Page
+        if (v instanceof Map) {
+            return new Page((Map)v)
+        }
+        // If it's a List, convert Map/ClipboardPage elements to Page instances
+        if (v instanceof List) {
+            return ((List)v).collect { elem ->
+                def e = elem
+                try {
+                    while (e instanceof ClipboardProperty) {
+                        e = ((ClipboardProperty)e).getPropertyValue()
+                    }
+                } catch(Exception ignoredInner) {}
+                // Robust check for Page instances within the list (classloader issues)
+                if (e instanceof Page) return e
+                if (e != null) {
+                    def eClass = e.getClass()
+                    if (eClass != null && eClass.name == 'com.pega.pegarules.pub.clipboard.Page') return e
+                }
+                if (e instanceof ClipboardPage) return new Page((ClipboardPage)e)
+                if (e instanceof Map) return new Page((Map)e)
+                return e
+            }
+        }
+        // Otherwise return as-is
+        return v
+    }
 
     String getReference() { return null }
 

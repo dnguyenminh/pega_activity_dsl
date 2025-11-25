@@ -4,12 +4,6 @@ class PegaRuleBuilder {
     // Conservative fallbacks so closure.call/doCall that accidentally resolve to the rule
     // builder won't break nested DSL execution.
     def doCall(Object... args) { this }
-    def methodMissing(String name, Object[] args) {
-        if (name == 'call' && args != null && args.length >= 1 && args[0] instanceof String) {
-            return this
-        }
-        throw new MissingMethodException(name, this.class, args)
-    }
 
     // NOTE: invokeMethod intentionally not overridden. We only forward
     // through methodMissing which keeps dispatch simpler and avoids

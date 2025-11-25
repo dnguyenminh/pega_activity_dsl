@@ -48,4 +48,5 @@ class ActivityBuilderExtraBranchCoverageTest extends Specification {
         then:
         a.steps.find{ it.method=='OnlyStep' } != null
     }
+
 }

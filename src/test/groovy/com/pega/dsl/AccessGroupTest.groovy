@@ -74,7 +74,7 @@ class AccessGroupTest extends Specification {
     def "should handle empty access group definition"() {
         when:
         def group = accessGroup('EmptyGroup') {
-            // No configuration
+        // No configuration
         }
 
         then:
@@ -83,4 +83,5 @@ class AccessGroupTest extends Specification {
         group.portals.isEmpty()
         group.workPools.isEmpty()
     }
+
 }

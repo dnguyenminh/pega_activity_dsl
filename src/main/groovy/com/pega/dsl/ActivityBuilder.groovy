@@ -66,7 +66,6 @@ class ActivityBuilder {
         if (second instanceof Map) {
             return [string: s, map: (Map) second]
         }
-        return null
         // Defensive final return to satisfy static analysis; normally unreachable.
         return null
     }

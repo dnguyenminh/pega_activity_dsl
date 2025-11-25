@@ -7,8 +7,8 @@ import java.util.Date
  * Minimal implementation of ClipboardPage backed by a Map delegate.
  */
 abstract class AbstractClipboardPage implements ClipboardPage {
-    // delegate stores propertyName -> ClipboardProperty
-    protected Map delegate = [:]
+
+    protected Map delegate
     List<String> messages = []
     String pageName = null
 
@@ -27,10 +27,10 @@ abstract class AbstractClipboardPage implements ClipboardPage {
     ]
 
     AbstractClipboardPage() {
+        this.@delegate = [:] // Initialize here
         // initialize delegate with standard keys as property objects
         STANDARD_BASECLASS_PROPS.each { k, v ->
-            // wrap raw defaults into property objects so instances are independent
-            this.@delegate.put(k, new SimpleClipboardProperty(v))
+            this.putAt(k, v)
         }
     }
 
@@ -38,127 +38,221 @@ abstract class AbstractClipboardPage implements ClipboardPage {
     static {
         AbstractClipboardPage.metaClass.getProperty = { o, name ->
             try {
-                try { println "DEBUG metaClass.getProperty called for name=${name}" } catch(Exception ignored) {}
-                return o.getAt(name)
+                def key = (name == null) ? null : name.toString()
+                return o.getAt(key)
             } catch(Exception e) {
-                try { println "DEBUG metaClass.getProperty fallback for name=${name}, err=${e.message}" } catch(Exception ignored) {}
                 return o.metaClass.getProperty(o, name)
             }
+        }
+        AbstractClipboardPage.metaClass.setProperty = { o, name, value ->
+            def key = (name == null) ? null : name.toString()
+            o.putAt(key, value)
         }
     }
 
     AbstractClipboardPage(Map m) {
+        this.@delegate = [:] // Initialize here
         // start from base props then overlay provided map values
-    STANDARD_BASECLASS_PROPS.each { k, v -> this.@delegate.put(k, new SimpleClipboardProperty(v)) }
-        // convert entries in m into properties
-        m.each { k, v ->
-            try {
-                println "DEBUG AbstractClipboardPage(Map): incoming key=${k}, type=${v?.getClass()?.name}, value=${v}"
-            } catch(Exception ignore) {}
-            // If the incoming value is already a ClipboardProperty, keep it as-is to avoid double-wrapping.
-            if(v instanceof ClipboardProperty) {
-                this.@delegate.put(k, v)
-            } else if(v instanceof Map) {
-                this.@delegate.put(k, new SimpleClipboardProperty(new SimpleClipboardPage((Map)v)))
-            } else if(v instanceof List) {
-                // convert list elements: unwrap ClipboardProperty elements, convert Map elements into pages
-                def lst = v.collect { elem ->
-                    if(elem instanceof ClipboardProperty) return ((ClipboardProperty)elem).getPropertyValue()
-                    if(elem instanceof Map) return new SimpleClipboardPage((Map)elem)
-                    return elem
-                }
-                this.@delegate.put(k, new SimpleClipboardProperty(lst))
-            } else {
-                this.@delegate.put(k, new SimpleClipboardProperty(v))
+        STANDARD_BASECLASS_PROPS.each { k, v -> putAt(k, v) }
+        // convert entries in m into properties (coerce keys to String to avoid ClassCastException)
+        if (m != null) {
+            for (Map.Entry entry : m.entrySet()) {
+                def key = (entry.getKey() == null) ? null : entry.getKey().toString()
+                putAt(key, entry.getValue())
             }
         }
+    }
+
+    /**
+     * Construct page from a List of descriptors.
+     * Common callers use a List of Maps like: [ [c:3], [d:4] ] which should yield properties c and d.
+     */
+    AbstractClipboardPage(List props) {
+        this.@delegate = [:] // Initialize here
+        // initialize baseclass defaults
+        STANDARD_BASECLASS_PROPS.each { k, v -> this.putAt(k, v) } // Use putAt for consistency
+        if (props == null) return
+
+        // Each element may be a Map of entries, a ClipboardPage, or a raw value.
+        props.eachWithIndex { e, idx ->
+            if (e instanceof Map) {
+                // each map may contain one or more property entries; reuse putAll to ensure proper wrapping
+                this.putAll((Map)e)
+            } else if (e instanceof ClipboardPage) {
+                // copy entries from the provided page
+                e.entrySet().each { entry ->
+                    this.putAt(entry.getKey(), entry.getValue())
+                }
+            } else if (e instanceof ClipboardProperty) {
+                // best-effort: store the property value under a generated key
+                def key = "item" + idx
+                this.putAt(key, ((ClipboardProperty)e).getPropertyValue())
+            } else {
+                // raw values: append into an 'items' list property
+                def existing = this.getPropertyObject("items")
+                if (!(existing instanceof List)) existing = []
+                existing << e
+                this.putAt("items", existing)
+            }
+        }
+    }
+
+    // Helper: recursively unwrap SimpleClipboardProperty and convert Maps/ClipboardPage to Page, Lists to List<Page>
+    private static Object _deepUnwrapAndConvert(Object v) {
+        def unwrapped = v
+        // Fully unwrap any ClipboardProperty-like object to its raw value (handle classloader mismatches).
+        while (_isClipboardProperty(unwrapped)) {
+            unwrapped = _getPropertyValueSafe(unwrapped)
+        }
+    
+        // If it's already a ClipboardPage (including Page), convert to a SimpleClipboardPage instance to avoid
+        // potential classloader/instance mismatch and to provide a consistent SimpleClipboardPage type to callers.
+        if (unwrapped instanceof ClipboardPage) {
+            return new SimpleClipboardPage((ClipboardPage)unwrapped)
+        }
+    
+        if (unwrapped instanceof Map) {
+            return new SimpleClipboardPage((Map)unwrapped) // Create a new SimpleClipboardPage from a Map
+        }
+        if (unwrapped instanceof List) {
+            return ((List)unwrapped).collect { elem ->
+                // Recursively convert elements in the list
+                _deepUnwrapAndConvert(elem)
+            }
+        }
+        return unwrapped
     }
 
     /** Accept a List of ClipboardProperty objects (Page constructed from explicit property descriptors).
     * Example usage: new AbstractClipboardPage([ new Page('amount',5), new Page('id','a') ])
      */
-    AbstractClipboardPage(List props) {
-        // initialize with standard baseclass properties
-    STANDARD_BASECLASS_PROPS.each { k, v -> this.@delegate.put(k, new SimpleClipboardProperty(v)) }
-        if(props == null) return
-        props.each { entry ->
-            try {
-                if(entry instanceof ClipboardProperty) {
-                    def propName = entry.getName()
-                    if(propName) this.@delegate.put(propName, entry)
-                    else {
-                        // if name missing, attempt to use string key or skip
-                        // fall back to index-based key
-                        this.@delegate.put(UUID.randomUUID().toString(), entry)
-                    }
-                } else if(entry instanceof Map) {
-                    // map-style element with one entry -> name:value
-                    if(((Map)entry).size() == 1) {
-                        def k = ((Map)entry).keySet().iterator().next()
-                        def v = ((Map)entry).get(k)
-                        if(v instanceof Map) this.@delegate.put(k, new SimpleClipboardProperty(new SimpleClipboardPage((Map)v)))
-                        else if(v instanceof List) this.@delegate.put(k, new SimpleClipboardProperty(((List)v).collect { it instanceof Map ? new SimpleClipboardPage((Map)it) : it }))
-                        else this.@delegate.put(k, new SimpleClipboardProperty(v))
-                    }
-                }
-            } catch(Exception e) {
-                // ignore malformed entries
-            }
-        }
-    }
 
     // internal delegate map used for storage; implement Map methods required by the interface
-    int size() { return delegate.size() }
-    boolean isEmpty() { return delegate.isEmpty() }
-    boolean containsKey(Object k) { return delegate.containsKey(k) }
+    int size() { return this.@delegate.size() }
+    boolean isEmpty() { return this.@delegate.isEmpty() }
+    boolean containsKey(Object k) { return this.@delegate.containsKey(k) }
     boolean containsValue(Object v) {
-        return delegate.values().any { p -> (p instanceof ClipboardProperty) ? p.getPropertyValue()==v : p==v }
+        return this.@delegate.values().any { p -> (p instanceof ClipboardProperty) ? p.getPropertyValue()==v : p==v }
     }
     // Map-like get: return property value (string) for compatibility with ClipboardPage interface
     String get(Object k) {
-        def p = delegate.get(k)
+        def key = (k == null) ? null : k.toString()
+        def p = this.@delegate.get(key)
         if(p == null) return null
         if(p instanceof ClipboardProperty) return ((ClipboardProperty)p).getStringValue()
         return p == null ? null : p.toString()
     }
     // support bracket get and set: page['prop'] and page['prop']=val
     Object getAt(Object k) {
-        def p = this.@delegate.get(k)
-        return _unwrapPropertyValue(p)
+        def key = (k == null) ? null : k.toString()
+        def stored = this.@delegate.get(key)
+
+        if (stored == null) {
+            return null
+        }
+
+        // Defensive direct-reflection unwrap for SimpleClipboardProperty class (handles classloader edge-cases)
+        try {
+            if (stored.getClass() != null && stored.getClass().name == 'com.pega.pegarules.pub.clipboard.SimpleClipboardProperty') {
+                try {
+                    def f = stored.getClass().getDeclaredField('value')
+                    f.setAccessible(true)
+                    def pv = f.get(stored)
+                    def rv = _deepUnwrapAndConvert(pv)
+                    return rv
+                } catch(Exception e) {
+                    // fall through
+                }
+            }
+        } catch(Exception ignored) {
+            // ignore reflection failures and continue normal path
+        }
+
+        try {
+            if (stored instanceof Page) {
+                return stored
+            }
+
+            if (stored instanceof ClipboardProperty) {
+                try {
+                    def pv = ((ClipboardProperty)stored).getPropertyValue()
+                    def rv = _deepUnwrapAndConvert(pv)
+                    return rv
+                } catch(Exception e) {
+                    // fall through
+                }
+            }
+
+            if (stored instanceof ClipboardPage) {
+                return new SimpleClipboardPage((ClipboardPage)stored)
+            }
+    
+            if (stored instanceof Map) {
+                return new SimpleClipboardPage((Map)stored)
+            }
+
+            if (stored instanceof List) {
+                return ((List)stored).collect { e -> _deepUnwrapAndConvert(e) }
+            }
+        } catch (Exception e) {
+            try { return _deepUnwrapAndConvert(stored) } catch(Exception ignored2) { return stored }
+        }
+
+        return stored
     }
-    // put: accept raw value and wrap into ClipboardProperty; return previous value as string
+    // Helper to store a value, handling unwrapping and conversion
+    private void _storeValue(Object k, Object v) {
+        def key = (k == null) ? null : k.toString()
+    
+        // If caller passed a ClipboardProperty-like object, try to unwrap it first to avoid
+        // storing a property wrapper around a Page/value.
+        def valueToProcess = v
+        if (_isClipboardProperty(valueToProcess)) {
+            try { valueToProcess = _getPropertyValueSafe(valueToProcess) } catch(Exception ignored) { /* continue with original */ }
+        }
+    
+        def finalValue = _deepUnwrapAndConvert(valueToProcess)
+    
+        // Defensive: if finalValue itself is a ClipboardProperty-like wrapper (edge cases),
+        // unwrap one more layer so we store the underlying Page/value.
+        if (_isClipboardProperty(finalValue)) {
+            try { finalValue = _getPropertyValueSafe(finalValue) } catch(Exception ignored) { /* ignore */ }
+            finalValue = _deepUnwrapAndConvert(finalValue)
+        }
+
+        // If a Map slipped through, convert to Page explicitly.
+        if (finalValue instanceof Map) {
+            finalValue = new Page((Map)finalValue)
+        }
+
+        // Always store as a SimpleClipboardProperty wrapper to keep retrieval/unwrapping logic consistent.
+        this.@delegate.put(key, new SimpleClipboardProperty(finalValue))
+    }
+
+    // put: accept raw value and wrap into ClipboardProperty; normalize Map/List/ClipboardPage into Page/List<Page>
     String put(Object k, Object v) {
-        def prev = delegate.get(k)
-        def tostore
-    if(v instanceof Map) tostore = new SimpleClipboardProperty(new SimpleClipboardPage((Map)v))
-    else if(v instanceof List) tostore = new SimpleClipboardProperty(v.collect { it instanceof Map ? new SimpleClipboardPage((Map)it) : it })
-        else if(v instanceof ClipboardProperty) tostore = v
-        else tostore = new SimpleClipboardProperty(v)
-        try { println "DEBUG AbstractClipboardPage.put(Object,Object): key=${k}, incomingType=${v?.getClass()?.name}, tostoreInner=${(tostore instanceof ClipboardProperty)?((ClipboardProperty)tostore).getPropertyValue():tostore}" } catch(Exception ignore) {}
-        this.@delegate[k] = tostore
+        def key = (k == null) ? null : k.toString()
+        def prev = this.@delegate.get(key)
+        _storeValue(k, v) // Use the new helper (key normalized there)
         if(prev instanceof ClipboardProperty) return ((ClipboardProperty)prev).getStringValue()
         return prev == null ? null : prev.toString()
     }
     void putAt(Object k, Object v) {
-        def tostore
-    if(v instanceof Map) tostore = new SimpleClipboardProperty(new SimpleClipboardPage((Map)v))
-    else if(v instanceof List) tostore = new SimpleClipboardProperty(v.collect { it instanceof Map ? new SimpleClipboardPage((Map)it) : it })
-        else if(v instanceof ClipboardProperty) tostore = v
-        else tostore = new SimpleClipboardProperty(v)
-        // debug: log when setting base-class defaults
-        try {
-            println "DEBUG AbstractClipboardPage.putAt: key=${k}, incomingType=${v?.getClass()?.name}, tostoreType=${tostore?.getClass()?.name}, tostoreInner=${(tostore instanceof ClipboardProperty)?((ClipboardProperty)tostore).getPropertyValue():tostore}"
-        } catch(Exception ignore) { }
-        this.@delegate.put(k, tostore)
+        _storeValue(k, v) // Use the new helper (key normalized there)
     }
     void putAll(Map m) {
-        // use this.putAt to avoid dispatching to the String-specific put(String,String) overload
-        m.each { k, v -> this.putAt(k, v) }
+        // use a simple for-loop and explicit entry handling to avoid closure/property resolution issues
+        // Coerce keys to String to avoid runtime property-set casting errors when keys are non-String objects.
+        if (m == null) return
+        for (Map.Entry entry : m.entrySet()) {
+            def key = (entry.getKey() == null) ? null : entry.getKey().toString()
+            this.putAt(key, entry.getValue())
+        }
     }
-    void clear() { delegate.clear() }
-    Set keySet() { return delegate.keySet() }
-    Collection values() { return delegate.values().collect { p -> (p instanceof ClipboardProperty) ? p.getPropertyValue() : p } }
-    Set entrySet() { return delegate.entrySet() }
+    void clear() { this.@delegate.clear() }
+    Set keySet() { return this.@delegate.keySet() }
+    Collection values() { return this.@delegate.values().collect { p -> (p instanceof ClipboardProperty) ? p.getPropertyValue() : p } }
+    Set entrySet() { return this.@delegate.entrySet() }
 
     // --- ClipboardPage methods ---
     void addMessage(String aMessage) { messages << aMessage }
@@ -170,26 +264,44 @@ abstract class AbstractClipboardPage implements ClipboardPage {
 
     // Return a ClipboardProperty object as required by the interface.
     // If the stored value is already a ClipboardProperty, return it.
-    // Otherwise, wrap the raw value in a SimpleClipboardProperty.
+    // Otherwise, wrap the raw value in a SimpleClipboardProperty so the
+    // returned object implements ClipboardProperty (correct interface).
     ClipboardProperty getProperty(String aReference) {
-        def p = delegate.get(aReference)
-        if(p instanceof ClipboardProperty) return (ClipboardProperty)p
-        if(p == null) return null
-        return new Page(_unwrapPropertyValue(p))
+        def p = this.@delegate.get(aReference)
+        if (p instanceof ClipboardProperty) return (ClipboardProperty)p
+        if (p == null) return null
+     
+        // Unwrap any nested ClipboardProperty layers and coerce Map/List -> Page(s)
+        def resolved = _unwrapPropertyValue(p)
+     
+        // If the resolved value is already a ClipboardPage, wrap it in a SimpleClipboardProperty
+        // (SimpleClipboardProperty.getPageValue handles Map -> Page conversion internally).
+        return new SimpleClipboardProperty(resolved)
     }
 
-    // helper: return the raw unwrapped value when callers need it
-    Object getPropertyObject(String aReference) {
-        def p = delegate.get(aReference)
-        if(p == null) return null
-        return _unwrapPropertyValue(p)
-    }
-    String getString(String aReference) { def p = delegate.get(aReference); return p==null?null:((p instanceof ClipboardProperty)?((ClipboardProperty)p).getStringValue():p.toString()) }
+Object getPropertyObject(String aReference) {
+    def key = (aReference == null) ? null : aReference.toString()
+    def p = this.@delegate.get(key)
+    if (p == null) return null
+
+    // Unwrap known wrapper types and convert Map/ClipboardPage -> Page
+    def resolved = _unwrapPropertyValue(p)
+
+    // Defensive: if resolved is still a ClipboardProperty-like wrapper, unwrap iteratively.
+    try {
+        while (_isClipboardProperty(resolved)) {
+            resolved = _getPropertyValueSafe(resolved)
+            resolved = _deepUnwrapAndConvert(resolved)
+        }
+    } catch(Exception ignored) { /* best-effort: return whatever we have */ }
+
+    return resolved
+}
+    String getString(String aReference) { def key = (aReference == null) ? null : aReference.toString(); def p = this.@delegate.get(key); return p==null?null:((p instanceof ClipboardProperty)?((ClipboardProperty)p).getStringValue():p.toString()) }
     String put(String aPropertyName, String aValue) {
         // Avoid delegating to the overloaded put(Object,Object) to prevent recursion
         def prev = this.@delegate.get(aPropertyName)
-    def tostore = new SimpleClipboardProperty(aValue)
-        try { println "DEBUG AbstractClipboardPage.put(String,String): key=${aPropertyName}, value=${aValue}, tostoreInner=${tostore.getPropertyValue()}" } catch(Exception ignore) {}
+        def tostore = new SimpleClipboardProperty(aValue)
         this.@delegate[aPropertyName] = tostore
         if(prev instanceof ClipboardProperty) return ((ClipboardProperty)prev).getStringValue()
         return prev == null ? null : prev.toString()
@@ -197,64 +309,157 @@ abstract class AbstractClipboardPage implements ClipboardPage {
     String putString(String aPropertyName, String aValue) {
         return put(aPropertyName, aValue)
     }
-    void clearValue(String aReference) { delegate.remove(aReference) }
-    ClipboardProperty removeProperty(String aReference) { def prev = delegate.remove(aReference); return (ClipboardProperty)prev }
-    String remove(Object aReference) { def prev = delegate.remove(aReference); if(prev instanceof ClipboardProperty) return ((ClipboardProperty)prev).getStringValue(); return prev==null?null:prev.toString() }
+    void clearValue(String aReference) { this.@delegate.remove(aReference) }
+    ClipboardProperty removeProperty(String aReference) { def prev = this.@delegate.remove(aReference); return (ClipboardProperty)prev }
+    String remove(Object aReference) { def prev = this.@delegate.remove(aReference); if(prev instanceof ClipboardProperty) return ((ClipboardProperty)prev).getStringValue(); return prev==null?null:prev.toString() }
 
-    String getJSON(boolean aEncode) { return delegate.toString() }
+    String getJSON(boolean aEncode) { return this.@delegate.toString() }
     void adoptJSONObject(Object aJO) { /* no-op */ }
-    String getXML(boolean aEncode) { return delegate.toString() }
-    String getXML(int aOptions) { return delegate.toString() }
-    String getXML(String aPageName, int aOptions) { return delegate.toString() }
+    String getXML(boolean aEncode) { return this.@delegate.toString() }
+    String getXML(int aOptions) { return this.@delegate.toString() }
+    String getXML(String aPageName, int aOptions) { return this.@delegate.toString() }
     void adoptXMLForm(String aXMLForm, int aOptions) { /* no-op */ }
 
     ClipboardPage copy() {
-        def m = [:]
-        delegate.each { k, v ->
-            if(v instanceof ClipboardProperty) m[k] = ((ClipboardProperty)v).getPropertyValue()
-            else m[k] = v
+        def newPage = new Page()
+        this.@delegate.each { k, v ->
+            def unwrappedValue = _unwrapPropertyValue(v)
+            newPage.put(k, unwrappedValue)
         }
-    return new SimpleClipboardPage(m)
+        return newPage
     }
-    void copyTo(ClipboardPage aDestPage) { if(aDestPage instanceof AbstractClipboardPage) { ((AbstractClipboardPage)aDestPage).delegate.clear(); ((AbstractClipboardPage)aDestPage).delegate.putAll(delegate) } }
-    void copyFrom(ClipboardPage aSourcePage) { if(aSourcePage instanceof AbstractClipboardPage) {
-            ((AbstractClipboardPage)aSourcePage).delegate.each { k, v -> delegate[k] = v }
-        } }
+    void copyTo(ClipboardPage aDestPage) {
+        if (aDestPage instanceof AbstractClipboardPage) {
+            aDestPage.clear()
+            this.@delegate.each { k, v ->
+                def unwrappedValue = _unwrapPropertyValue(v)
+                aDestPage.put(k, unwrappedValue)
+            }
+        }
+    }
+    void copyFrom(ClipboardPage aSourcePage) {
+        if (aSourcePage instanceof AbstractClipboardPage) {
+            this.@delegate.clear()
+            ((AbstractClipboardPage)aSourcePage).@delegate.each { k, v ->
+                def unwrappedValue = _unwrapPropertyValue(v)
+                this.put(k, unwrappedValue)
+            }
+        }
+    }
     void rename(String aNewName) { this.pageName = aNewName }
-    void replace(ClipboardPage aSourcePage) { delegate.clear(); if(aSourcePage instanceof AbstractClipboardPage) delegate.putAll(((AbstractClipboardPage)aSourcePage).delegate) }
+    void replace(ClipboardPage aSourcePage) {
+        // Clear current content and copy entries from the source page using public API to ensure
+        // proper wrapping/normalization of values.
+        this.clear()
+        if (aSourcePage == null) return
+        if (aSourcePage instanceof AbstractClipboardPage) {
+            // Source has internal delegate map we can iterate safely and normalize values via put(...)
+            ((AbstractClipboardPage)aSourcePage).@delegate.each { k, v ->
+                this.put(k, _unwrapPropertyValue(v))
+            }
+        } else {
+            // Generic ClipboardPage: iterate its entrySet and use public put to normalize values
+            try {
+                aSourcePage.entrySet().each { entry ->
+                    this.put(entry.getKey(), entry.getValue())
+                }
+            } catch(Exception ignored) {
+                // best-effort fallback: if entrySet isn't available or fails, do nothing
+            }
+        }
+    }
 
     // allow dot-access like page.prop to return the underlying property value
     def propertyMissing(String name) {
-        def p = this.@delegate.get(name)
-        return _unwrapPropertyValue(p)
+        // Use getAt to ensure consistent unwrapping semantics with bracket access.
+        return getAt(name)
     }
 
     private Object _unwrapPropertyValue(Object p) {
-        if(p == null) return null
+        if (p == null) return null
+        // If the stored object is already a Page instance, return it directly to preserve identity.
         try {
-            while(p instanceof ClipboardProperty) {
-                p = ((ClipboardProperty)p).getPropertyValue()
+            if (p instanceof Page) {
+                return p
             }
-        } catch(Exception e) { /* ignore and return raw */ }
-        return p
+        } catch(Exception ignored) { /* defensive for classloader edge-cases */ }
+        // If it's any ClipboardPage (but not Page), convert to a Page to provide consistent type.
+        try {
+            if (p instanceof ClipboardPage) {
+                return new SimpleClipboardPage((ClipboardPage)p)
+            }
+        } catch(Exception ignored) { /* continue with fallback */ }
+        if (_isClipboardProperty(p)) {
+            try {
+                return _deepUnwrapAndConvert(_getPropertyValueSafe(p))
+            } catch(Exception ignored) {
+                return _deepUnwrapAndConvert(p)
+            }
+        }
+        return _deepUnwrapAndConvert(p)
     }
 
-    // intercept generic property assignments (e.g. page.prop = val) to ensure proper wrapping
-    void setProperty(String name, Object value) {
-        // wrap and store directly into the internal delegate to avoid meta-method dispatch
-        def tostore
-    if(value instanceof Map) tostore = new SimpleClipboardProperty(new SimpleClipboardPage((Map)value))
-    else if(value instanceof List) tostore = new SimpleClipboardProperty(value.collect { it instanceof Map ? new SimpleClipboardPage((Map)it) : it })
-        else if(value instanceof ClipboardProperty) tostore = value
-    else tostore = new SimpleClipboardProperty(value)
-        this.@delegate.put(name, tostore)
+    private static boolean isPageInstance(Object obj) {
+        if (obj == null) return false
+        if (obj instanceof ClipboardPage) return true
+        // Extreme defensive check for classloader issues
+        Closure checkClassName = { it ->
+            try {
+                return it.class.name == 'com.pega.pegarules.pub.clipboard.Page'
+            } catch (Exception e) {
+                return false
+            }
+        }
+        return checkClassName(obj)
     }
+
+    private static boolean isListOfPageInstances(List list) {
+        for (def elem : list) {
+            if (elem != null && !isPageInstance(elem)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    // Detect clipboard-property-like objects even across classloader boundaries by
+    // checking for the interface first then falling back to reflection for the
+    // presence of a getPropertyValue method.
+    private static boolean _isClipboardProperty(Object o) {
+        if (o == null) return false
+        try {
+            if (o instanceof ClipboardProperty) return true
+        } catch(Exception ignored) { /* classloader mismatch */ }
+        try {
+            return o.getClass().getMethod('getPropertyValue') != null
+        } catch(Exception ignored) {
+            return false
+        }
+    }
+
+    // Safely obtain property value via interface or reflection.
+    private static Object _getPropertyValueSafe(Object o) {
+        if (o == null) return null
+        try {
+            if (o instanceof ClipboardProperty) {
+                return ((ClipboardProperty)o).getPropertyValue()
+            }
+        } catch(Exception ignored) { /* continue to reflection fallback */ }
+        try {
+            def m = o.getClass().getMethod('getPropertyValue')
+            return m.invoke(o)
+        } catch(Exception ignored) {
+            return o
+        }
+    }
+
+
 
     boolean isEmbedded() { return false }
     boolean isValid() { return true }
     void setValue(String aReference, Object aValue) { put(aReference, aValue) }
     BigDecimal getBigDecimal(String aReference) {
-        def v = _unwrapPropertyValue(delegate.get(aReference))
+        def v = _unwrapPropertyValue(this.@delegate.get(aReference))
         if (v == null) return null
         try {
             return (v instanceof BigDecimal) ? (BigDecimal)v : new BigDecimal(v.toString())
@@ -263,17 +468,20 @@ abstract class AbstractClipboardPage implements ClipboardPage {
         }
     }
     boolean getBoolean(String aReference) {
-        def v = _unwrapPropertyValue(delegate.get(aReference))
+        def v = _unwrapPropertyValue(this.@delegate.get(aReference))
         return v as boolean
     }
     Date getDate(String aReference) { return null }
     void putProperty(ClipboardProperty aProperty) { /* no-op */ }
     Object getEntryHandle(String aPropertyReference) { return null }
     String getClassName() { return 'Data-Generic' }
+
     String getName() { return pageName }
+
     boolean isReadOnly() { return false }
     Collection<String> getMessages() { return messages }
     boolean isJavaPage() { return false }
+    int getType() { return ClipboardProperty.TYPE_PAGE } // Added missing getType() implementation
     ClipboardPage copy(ClipboardPage aPage) { copyTo(aPage); return aPage }
-    void removeFromClipboard() { delegate.clear() }
+    void removeFromClipboard() { this.@delegate.clear() }
 }

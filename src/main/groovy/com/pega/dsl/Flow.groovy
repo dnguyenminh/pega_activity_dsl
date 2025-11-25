@@ -8,6 +8,18 @@ class Flow extends Rule {
     Flow() {
         this.type = 'Flow'
     }
+    
+    Flow(String name) {
+        this()
+        this.name = name
+    }
+    
+    /**
+     * Return the first shape with the provided name or null if not found.
+     */
+    def getShape(String name) {
+        return shapes.find { it?.name == name }
+    }
 
     def work() {
         this.flowType = 'Work'

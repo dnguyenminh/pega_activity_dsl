@@ -4,6 +4,5 @@ package com.pega.pegarules.pub.clipboard
 class JavaPropertyList extends SimpleClipboardProperty {
     JavaPropertyList(List vals = null) {
         super(vals)
-        this.type = ClipboardPropertyType.JAVA_PROPERTY_LIST
     }
 }

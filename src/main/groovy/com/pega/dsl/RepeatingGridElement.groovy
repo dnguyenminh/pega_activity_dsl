@@ -8,6 +8,10 @@ class RepeatingGridElement extends UIElement {
         this.type = 'Repeating Grid'
     }
 
+    def column(String property, Closure closure) {
+        column(property, '', closure)
+    }
+
     def column(String property, String label = '', Closure closure = null) {
         def column = new GridColumn(property: property, label: label)
         if (closure) {

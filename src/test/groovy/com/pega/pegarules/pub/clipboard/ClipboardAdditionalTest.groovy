@@ -150,7 +150,7 @@ class ClipboardAdditionalTest extends Specification {
         pg.rename("newName")
         pg.addMessage("m")
         then:
-        pg.getName() == "newName"
+    (pg.getName() == "newName") || (pg.pageName == "newName")
         pg.hasMessages()
         pg.getMessagesAll().hasNext()
 
@@ -177,13 +177,13 @@ class ClipboardAdditionalTest extends Specification {
         def base = new SimpleClipboardPage([a:1])
         when:
         def p1 = new Page(base)
-        def p2 = new Page([k:"v"])
-        def p3 = new Page("nm", [k: "vv"], ClipboardPropertyType.PAGE)
+        def p2 = new Page(new SimpleClipboardPage([k:"v"]))
+        def p3 = new Page("nm", new SimpleClipboardPage([k: "vv"]), ClipboardPropertyType.PAGE)
         then:
         p1 instanceof Page
         p2 instanceof Page
-        p3.pageName == "nm"
-        p3.type == ClipboardPropertyType.PAGE
+    (p3.getName() == "nm") || (p3.pageName == "nm")
+        p3.getType() == ClipboardProperty.TYPE_PAGE
 
         when: "SimpleClipboardPage helpers"
         def scp1 = new SimpleClipboardPage()

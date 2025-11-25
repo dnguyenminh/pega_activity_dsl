@@ -1,6 +1,9 @@
 package com.pega.dsl
 
 class Application extends Rule {
+    // Ensure ScriptExtensions (which installs global DSL helpers) is loaded
+    static final __initScriptExtensions = com.pega.dsl.ScriptExtensions.class
+
     List<String> rulesets = []
     Map<String, Object> settings = [:]
 
@@ -27,6 +30,11 @@ class Application extends Rule {
      */
     def setting(String key, Object value) {
         this.settings[key] = value
+        return this
+    }
+
+    def setVersion(String v) {
+        super.setVersion(v)
         return this
     }
 }
