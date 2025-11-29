@@ -88,7 +88,8 @@ class ClipboardAdditionalTest extends Specification {
         // when a Map contains a ClipboardProperty instance the page stores it directly;
         // getPropertyObject unwraps ClipboardProperty to its raw value, so expect the inner value here
         pg.getPropertyObject("propAsClipboardProperty") == "vprop"
-        pg.getPropertyObject("propAsMap") instanceof SimpleClipboardPage
+        pg.getPropertyObject("propAsMap") instanceof ClipboardProperty
+        pg.getPropertyObject("propAsMap").getPageValue() instanceof SimpleClipboardPage
         pg.getPropertyObject("propAsList") instanceof List
         pg.get("primitive") == "prim"
 
@@ -111,7 +112,8 @@ class ClipboardAdditionalTest extends Specification {
         pg.putAll([x: "xx", y: [z:9]])
         then:
         pg.get("x") == "xx"
-        pg.getPropertyObject("y") instanceof SimpleClipboardPage
+        pg.getPropertyObject("y") instanceof ClipboardProperty
+        pg.getPropertyObject("y").getPageValue() instanceof SimpleClipboardPage
 
         when: "clear and copy semantics"
         def copy = pg.copy()
@@ -163,6 +165,7 @@ class ClipboardAdditionalTest extends Specification {
         pg.setProperty("lstProp", [[kk:1], 2])
         then:
         pg.getPropertyObject("lstProp") instanceof List
+        pg.getProperty("lstProp").getMode() == ClipboardProperty.MODE_LIST
 
         when: "remove methods"
         pg.remove("lstProp")

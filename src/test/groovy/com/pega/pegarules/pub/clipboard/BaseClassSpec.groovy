@@ -176,6 +176,25 @@ class BaseClassSpec extends Specification {
 
         then:
         // Should not throw exception
+        // Should not throw exception
         noExceptionThrown()
+    }
+
+    def "ensureBasePropsPresent handles ClipboardProperty in STANDARD_BASECLASS_PROPS"() {
+        given:
+        def originalProps = new HashMap(BaseClass.STANDARD_BASECLASS_PROPS)
+        // Modify static map temporarily
+        BaseClass.STANDARD_BASECLASS_PROPS['testProp'] = new SimpleClipboardProperty('testProp', 'val')
+
+        when:
+        def p = new BaseClass()
+
+        then:
+        p.getPropertyObject('testProp') == 'val'
+
+        cleanup:
+        // Restore original map
+        BaseClass.STANDARD_BASECLASS_PROPS.clear()
+        BaseClass.STANDARD_BASECLASS_PROPS.putAll(originalProps)
     }
 }

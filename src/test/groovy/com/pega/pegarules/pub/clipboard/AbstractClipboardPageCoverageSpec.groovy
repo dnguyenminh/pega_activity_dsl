@@ -6,6 +6,7 @@ class AbstractClipboardPageCoverageSpec extends Specification {
 
     def "getAt returns null for missing key and unwraps maps into Page"() {
         given:
+        println "DEBUG: SimpleClipboardPage location: ${SimpleClipboardPage.class.getProtectionDomain().getCodeSource().getLocation()}"
         def page = new SimpleClipboardPage()
 
         expect:
@@ -16,6 +17,21 @@ class AbstractClipboardPageCoverageSpec extends Specification {
 
         then:
         def result = page.getAt('m')
+        println "TEST: delegate['m'] = ${page.@delegate.get('m')?.getClass()?.name}"
+        println "TEST: getPropertyObject('m') = ${page.getPropertyObject('m')?.getClass()?.name}"
+        println "TEST: getProperty('m') = ${page.getProperty('m')?.getClass()?.name}"
+        println "TEST: getAt('m') = ${result?.getClass()?.name}"
+        try {
+            def method = page.getClass().getMethod('getAt', [Object] as Class[])
+            println "DEBUG: page.getAt declaring class = ${method.declaringClass}"
+            println "DEBUG: page.class = ${page.getClass()}"
+        } catch(Exception e) {
+            println "DEBUG: reflection inspection failed: ${e.message}"
+        }
+        println "DEBUG: getAt overloads = ${page.getClass().getMethods().findAll{ it.name == 'getAt' }.collect{ it.toString() } }"
+        println "DEBUG: result instanceof SimpleClipboardPage? ${result instanceof SimpleClipboardPage}"
+        println "DEBUG: result instanceof ClipboardProperty? ${result instanceof ClipboardProperty}"
+        println "DEBUG: delegate value class ${page.@delegate.get('m')?.getClass()}"
         result instanceof SimpleClipboardPage
         result.getPropertyObject('a') == 1
     }
@@ -32,8 +48,11 @@ class AbstractClipboardPageCoverageSpec extends Specification {
         page.putAt('y', [b:2])
 
         then:
-        page.y instanceof SimpleClipboardPage
-        page.y.getPropertyObject('b') == 2
+        // Dot access returns ClipboardProperty because of the interface definition
+        page.y instanceof ClipboardProperty
+        // Subscript access returns the unwrapped page
+        page['y'] instanceof SimpleClipboardPage
+        page['y'].getPropertyObject('b') == 2
     }
 
     def "replace copies from another AbstractClipboardPage and clears existing"() {
@@ -51,8 +70,7 @@ class AbstractClipboardPageCoverageSpec extends Specification {
         then:
         dest.getString('old') == null
         dest.getString('a') == '1'
-        dest.getPropertyObject('p') instanceof Page
+        dest.getPropertyObject('p') instanceof ClipboardProperty
+        dest.getPropertyObject('p').getPageValue() instanceof ClipboardPage
     }
-
-
 }

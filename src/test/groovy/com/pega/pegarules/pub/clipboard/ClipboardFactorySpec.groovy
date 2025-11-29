@@ -40,6 +40,15 @@ class ClipboardFactorySpec extends Specification {
         pl.getPropertyValue()[0] instanceof SimpleClipboardPage
     }
 
+    def "newPageList handles null input"() {
+        when:
+        def pl = ClipboardFactory.newPageList(null)
+
+        then:
+        pl instanceof PageList
+        pl.getPropertyValue().isEmpty()
+    }
+
     def "newProperty returns SimpleClipboardProperty with name and type"() {
         when:
         def prop = ClipboardFactory.newProperty('amt', 5)

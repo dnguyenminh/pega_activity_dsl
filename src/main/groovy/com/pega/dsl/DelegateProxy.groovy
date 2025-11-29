@@ -16,10 +16,16 @@ class DelegateProxy {
     }
 
     def call(Object... args) {
+        if (target instanceof Map && target.containsKey('call') && target.get('call') instanceof Closure) {
+            return target.get('call').call(*args)
+        }
         return org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(target, 'call', args)
     }
 
     def doCall(Object... args) {
+        if (target instanceof Map && target.containsKey('doCall') && target.get('doCall') instanceof Closure) {
+            return target.get('doCall').call(*args)
+        }
         return org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(target, 'doCall', args)
     }
 
@@ -35,17 +41,7 @@ class DelegateProxy {
         }
 
         // Otherwise, attempt to invoke the method directly on the target.
-        try {
-            return target."$name"(*arguments)
-        } catch (MissingMethodException mme) {
-            // Fallback for edge cases where direct dispatch fails but invoker might succeed
-            try {
-                return org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(target, name, args)
-            } catch (MissingMethodException mme2) {
-                // Throw original exception if fallback also fails
-                throw mme
-            }
-        }
+        return org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(target, name, arguments)
     }
 
     String toString() { "DelegateProxy(${target})" }

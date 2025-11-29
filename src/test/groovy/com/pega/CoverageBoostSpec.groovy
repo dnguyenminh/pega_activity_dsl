@@ -52,7 +52,7 @@ class CoverageBoostSpec extends Specification {
         // getAt returns raw unwrapped value (accept numeric or string forms)
         page.getAt('a')?.toString() == '1'
     def atB = page.getAt('b')
-    (atB instanceof Page) || (atB instanceof SimpleClipboardProperty && ((SimpleClipboardProperty)atB).getPropertyValue() instanceof Page)
+    (atB instanceof com.pega.pegarules.pub.clipboard.ClipboardPage) || (atB instanceof SimpleClipboardProperty && (((SimpleClipboardProperty)atB).getPropertyValue() instanceof com.pega.pegarules.pub.clipboard.ClipboardPage || ((SimpleClipboardProperty)atB).getPropertyValue() instanceof SimpleClipboardPage))
     def atLst = page.getAt('lst')
     (atLst instanceof List) || (atLst instanceof SimpleClipboardProperty && ((SimpleClipboardProperty)atLst).getPropertyValue() instanceof List)
 

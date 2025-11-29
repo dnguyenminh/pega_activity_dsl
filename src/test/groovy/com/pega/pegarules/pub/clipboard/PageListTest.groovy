@@ -67,5 +67,48 @@ class PageListTest extends Specification {
         out[0] instanceof Page
         out[1] instanceof Page
     }
+
+    def "should support add operations"() {
+        given:
+        def pl = new PageList()
+
+        when:
+        pl.add([a:1])
+        pl.add(new Page([b:2]))
+        pl.add(1, [c:3]) // Insert at index 1
+
+        then:
+        pl.size() == 3
+        pl.get(0).getPageValue().getString('a') == '1'
+        pl.get(1).getPageValue().getString('c') == '3'
+        pl.get(2).getPageValue().getString('b') == '2'
+    }
+
+    def "should support remove operations"() {
+        given:
+        def pl = new PageList([[a:1], [b:2], [c:3]])
+
+        when:
+        pl.remove(1)
+
+        then:
+        pl.size() == 2
+        pl.get(0).getPageValue().getString('a') == '1'
+        pl.get(1).getPageValue().getString('c') == '3'
+    }
+
+    def "should return correct mode"() {
+        expect:
+        new PageList().getMode() == ClipboardProperty.MODE_LIST
+    }
+
+    def "should get by index"() {
+        given:
+        def pl = new PageList([[a:1]])
+
+        expect:
+        pl.get(0) instanceof ClipboardProperty
+        pl.get(0).getPropertyValue() instanceof Page
+    }
 }
 

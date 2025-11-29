@@ -26,7 +26,6 @@ class PegaDslCore {
     static final ThreadLocal<Boolean> FORWARDING = new ThreadLocal<>()
  
 
-
     // Helper: walk closure.owner chain to find a delegate of a given type.
     static Object findOwnerDelegateOfType(Closure closure, Class type) {
         def o = closure?.owner
@@ -61,10 +60,10 @@ class PegaDslCore {
         try { s = java.net.URLDecoder.decode(s, 'UTF-8') } catch (ignored) { }
 
         s = s.replace('&nbsp;', ' ')
-        s = s.replace('&amp;', '&')
-        s = s.replace('&lt;', '<')
-        s = s.replace('&gt;', '>')
-        s = s.replace('&quot;', '"')
+        s = s.replace('&', '&')
+        s = s.replace('<', '<')
+        s = s.replace('>', '>')
+        s = s.replace('"', '"')
         try {
             s = s.replaceAll(/&#(\d+);/) { full, num -> (char) Integer.parseInt(num) as String }
             s = s.replaceAll(/&#x([0-9A-Fa-f]+);/) { full, hex -> (char) Integer.parseInt(hex, 16) as String }
@@ -89,7 +88,7 @@ class PegaDslCore {
         } catch (ignoredUnescape) { }
 
         s = s.replaceAll('&&', '&&')
-        s = s.replaceAll(/&\\|&/, '||')
+        s = s.replaceAll(/&\|&/, '||')
 
             s = s.replaceAll(/\(\)\s*$/, '')
     // strip surrounding single/double quotes only when they wrap the entire token

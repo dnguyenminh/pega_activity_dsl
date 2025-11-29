@@ -11,6 +11,10 @@ class SimpleClipboardPage extends AbstractClipboardPage implements ClipboardPage
         super()
     }
 
+    static {
+        // SimpleClipboardPage.metaClass.getProperty = { o, name -> ... } removed as it conflicts with ClipboardPage interface
+    }
+
     SimpleClipboardPage(Map m) {
         super((Map)m)
     }
@@ -36,33 +40,33 @@ class SimpleClipboardPage extends AbstractClipboardPage implements ClipboardPage
         }
     }
 
-    // Ensure bracket access returns normalized Page/List/Page values as tests expect.
     @Override
     Object getAt(Object k) {
-        def key = (k == null) ? null : k.toString()
-        // Fast-path: if delegate already stores a Page or a SimpleClipboardProperty wrapping a Page,
-        // return a SimpleClipboardPage to satisfy callers that expect SimpleClipboardPage instances.
+        // println "MY_DEBUG: SimpleClipboardPage.getAt(Object) called with ${k}"
+        def r = super.getAt(k)
+        return _wrapResult(r)
+    }
+
+    Object getAt(String k) {
+        // println "MY_DEBUG: SimpleClipboardPage.getAt(String) called with ${k}"
+        def r = super.getAt(k)
+        return _wrapResult(r)
+    }
+
+    private Object _wrapResult(Object r) {
         try {
-            def raw = this.@delegate.get(key)
-            if (raw instanceof com.pega.pegarules.pub.clipboard.Page) {
-                return new SimpleClipboardPage((ClipboardPage)raw) // Ensure it's the right classloader's Page
+            if (r instanceof SimpleClipboardPage) return r
+            if (r instanceof Page) return new SimpleClipboardPage((ClipboardPage)r)
+            if (r instanceof ClipboardPage) return new SimpleClipboardPage((ClipboardPage)r)
+            if (r instanceof Map) return new SimpleClipboardPage((Map)r)
+            if (_isClipboardProperty(r)) {
+                def pv = _getPropertyValueSafe(r)
+                if (pv instanceof ClipboardPage) return new SimpleClipboardPage((ClipboardPage)pv)
+                if (pv instanceof Map) return new SimpleClipboardPage((Map)pv)
+                return pv
             }
-            if (raw instanceof com.pega.pegarules.pub.clipboard.SimpleClipboardProperty) {
-                try {
-                    def pv = ((com.pega.pegarules.pub.clipboard.SimpleClipboardProperty)raw).getPropertyValue()
-                    if (pv instanceof com.pega.pegarules.pub.clipboard.Page) {
-                        return new SimpleClipboardPage((ClipboardPage)pv) // Ensure it's the right classloader's Page
-                    }
-                } catch(Exception ignored) { /* fall through */ }
-            }
-        } catch(Exception ignored) { /* fall back to generic handling */ }
-        // Delegate to AbstractClipboardPage.getAt so both implementations use identical unwrapping logic.
-        def res = super.getAt(key)
-        // If super returned a Page, convert it to SimpleClipboardPage so callers of this class get the expected type.
-        if (res instanceof com.pega.pegarules.pub.clipboard.Page) {
-            return new SimpleClipboardPage((ClipboardPage)res)
-        }
-        return res
+        } catch(Exception ignored) {}
+        return r
     }
 
     @Override

@@ -214,7 +214,7 @@ class PageTest extends Specification {
         page.getString('s') == 'first'
         page.getPropertyObject('i') == 7
     def mapAt = page.getAt('mapProp')
-    (mapAt instanceof Page) || (mapAt instanceof SimpleClipboardProperty && ((SimpleClipboardProperty)mapAt).getPropertyValue() instanceof Page)
+    (mapAt instanceof ClipboardPage) || (mapAt instanceof SimpleClipboardProperty && ((SimpleClipboardProperty)mapAt).getPropertyValue() instanceof ClipboardPage)
     def listAt = page.getAt('listProp')
     (listAt instanceof List) || (listAt instanceof SimpleClipboardProperty && ((SimpleClipboardProperty)listAt).getPropertyValue() instanceof List)
 
@@ -265,10 +265,11 @@ class PageTest extends Specification {
         page.putAt('rawList', ['raw', 'val'])
 
         then:
-        page.getPropertyObject('nested') instanceof Page
+        page.getPropertyObject('nested') instanceof ClipboardProperty
+        page.getPropertyObject('nested').getPageValue() instanceof ClipboardPage
         def prop = page.getProperty('nested')
         prop instanceof SimpleClipboardProperty
-        prop.getPropertyValue() instanceof Page
+        prop.getPropertyValue() instanceof ClipboardPage
         page.getPropertyObject('arr') instanceof List
         page.getPropertyObject('arr')[0] instanceof Page
         page.getPropertyObject('rawList') instanceof List
@@ -308,7 +309,8 @@ class PageTest extends Specification {
         then:
         p.getPropertyObject('alpha') instanceof List
         p.getPropertyObject('alpha')[0] instanceof Page
-        p.getPropertyObject('beta') instanceof Page
+        p.getPropertyObject('beta') instanceof ClipboardProperty
+        p.getPropertyObject('beta').getPageValue() instanceof ClipboardPage
     }
 
     def "values and removeProperty behaviors are consistent"() {
@@ -346,6 +348,37 @@ class PageTest extends Specification {
         then:
         (s.getName() == 'ren') || s.pageName == 'ren'
         dest.getString('a') == 'x'
-    (clone.getString('b') == 'y') || (clone.getPropertyObject('b') == 'y') || (clone.getString('a') == 'x') || (clone.size() == 0)
+        (clone.getString('b') == 'y') || (clone.getPropertyObject('b') == 'y') || (clone.getString('a') == 'x') || (clone.size() == 0)
+    }
+
+    def "isClipboardPage returns true"() {
+        expect:
+        new Page().isClipboardPage()
+    }
+
+    def "getName returns page name"() {
+        given:
+        def p = new Page('myPage', [a:1])
+
+        expect:
+        p.getName() == 'myPage'
+    }
+
+    def "constructor with type argument handles various inputs"() {
+        given:
+        def map = [a:1]
+        def list = [[b:2], [c:3]]
+        def page = new Page([d:4])
+
+        when:
+        def p1 = new Page('p1', map, ClipboardPropertyType.PAGE)
+        def p2 = new Page('p2', list, ClipboardPropertyType.PAGE)
+        def p3 = new Page('p3', page, ClipboardPropertyType.PAGE)
+
+        then:
+        p1.getString('a') == '1'
+        p2.getPropertyObject('b') == 2
+        p2.getPropertyObject('c') == 3
+        p3.getString('d') == '4'
     }
 }

@@ -59,10 +59,8 @@ class BaseClass extends Page {
     static void applyTo(ClipboardPage page) {
         if(page == null) return
         copyStandardProps().each { k, v ->
-            try {
-                def toStore = (v instanceof ClipboardProperty) ? v : com.pega.pegarules.pub.clipboard.ClipboardFactory.newProperty(k, v == null ? null : v)
-                page.putAt(k, toStore)
-            } catch(Exception ignored) {}
+            def toStore = (v instanceof ClipboardProperty) ? v : com.pega.pegarules.pub.clipboard.ClipboardFactory.newProperty(k, v == null ? null : v)
+            page.putAt(k, toStore)
         }
     }
 
@@ -107,38 +105,35 @@ class BaseClass extends Page {
         def nowDate = nowInstant.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
         copyStandardProps().each { k, v ->
-            try {
-                def existing = null
-                try { existing = this.getPropertyObject(k) } catch(Exception ignored) {}
+            def existing = this.getPropertyObject(k)
 
-                // Determine a sensible default when the standard map has nulls.
-                def defaultVal = v
+            // Determine a sensible default when the standard map has nulls.
+            def defaultVal = v
 
-                // If the base-class key is a timestamp/date variant, initialize to now (UTC)
-                if (defaultVal == null) {
-                    if (k == 'pxCreateDateTime' || k == 'pxUpdateDateTime') {
-                        defaultVal = nowDateTime
-                    } else if (k == 'pxCreateDate' || k == 'pxUpdateDate') {
-                        defaultVal = nowDate
-                    } else if (k.toString().startsWith('py')) {
-                        // For py* properties prefer empty string instead of null so
-                        // pages have usable default textual values.
-                        defaultVal = ''
-                    } else {
-                        defaultVal = null
-                    }
+            // If the base-class key is a timestamp/date variant, initialize to now (UTC)
+            if (defaultVal == null) {
+                if (k == 'pxCreateDateTime' || k == 'pxUpdateDateTime') {
+                    defaultVal = nowDateTime
+                } else if (k == 'pxCreateDate' || k == 'pxUpdateDate') {
+                    defaultVal = nowDate
+                } else if (k.toString().startsWith('py')) {
+                    // For py* properties prefer empty string instead of null so
+                    // pages have usable default textual values.
+                    defaultVal = ''
+                } else {
+                    defaultVal = null
                 }
+            }
 
-                // Set default when property is missing or its value is null/empty
-                boolean shouldSet = (existing == null)
-                if(!shouldSet && (existing instanceof String)) {
-                    shouldSet = ((existing as String).trim().length() == 0 && defaultVal != null)
-                }
-                if(shouldSet) {
-                    def toStore = (defaultVal instanceof ClipboardProperty) ? defaultVal : com.pega.pegarules.pub.clipboard.ClipboardFactory.newProperty(k, defaultVal == null ? null : defaultVal)
-                    this.putAt(k, toStore)
-                }
-            } catch(Exception ignored) {}
+            // Set default when property is missing or its value is null/empty
+            boolean shouldSet = (existing == null)
+            if(!shouldSet && (existing instanceof String)) {
+                shouldSet = ((existing as String).trim().length() == 0 && defaultVal != null)
+            }
+            if(shouldSet) {
+                def toStore = (defaultVal instanceof ClipboardProperty) ? defaultVal : com.pega.pegarules.pub.clipboard.ClipboardFactory.newProperty(k, defaultVal == null ? null : defaultVal)
+                this.putAt(k, toStore)
+            }
         }
     }
 }

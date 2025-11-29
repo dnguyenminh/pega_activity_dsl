@@ -23,8 +23,10 @@ class PageGroupSpec extends Specification {
 
         then:
         pg.getName() == 'PageGroup'
-        pg.getPropertyObject('a') instanceof Page
-        pg.getPropertyObject('b') instanceof Page
+        pg.getPropertyObject('a') instanceof ClipboardProperty
+        pg.getPropertyObject('a').getPageValue() instanceof ClipboardPage
+        pg.getPropertyObject('b') instanceof ClipboardProperty
+        pg.getPropertyObject('b').getPageValue() instanceof ClipboardPage
     }
 
     def "should inherit AbstractClipboardPage methods"() {

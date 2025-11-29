@@ -112,4 +112,24 @@ class CodePegaListSpec extends Specification {
         cpl instanceof CodePegaList
         cpl.getPropertyObject('pxObjClass') == 'Code-Pega-List'
     }
+
+    def "constructor handles various property types in STANDARD_CODEPEGALIST_PROPS"() {
+        given:
+        def originalProps = new HashMap(CodePegaList.STANDARD_CODEPEGALIST_PROPS)
+        // Modify static map temporarily to test branches
+        CodePegaList.STANDARD_CODEPEGALIST_PROPS['testDecimal'] = 10.5
+        CodePegaList.STANDARD_CODEPEGALIST_PROPS['testProp'] = new SimpleClipboardProperty('testProp', 'val')
+
+        when:
+        def cpl = new CodePegaList()
+
+        then:
+        cpl.getPropertyObject('testDecimal') == 10.5
+        cpl.getPropertyObject('testProp') == 'val'
+
+        cleanup:
+        // Restore original map
+        CodePegaList.STANDARD_CODEPEGALIST_PROPS.clear()
+        CodePegaList.STANDARD_CODEPEGALIST_PROPS.putAll(originalProps)
+    }
 }
