@@ -8,7 +8,7 @@ class PRAppRuntimeException extends RuntimeException {
     String ruleSetName
 
     PRAppRuntimeException(String aRulesetName, double aReason, String aMessage) {
-        super(aMessage)
+        super((String)aMessage)
         this.ruleSetName = aRulesetName
         this.reason = aReason
     }

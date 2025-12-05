@@ -57,5 +57,46 @@ class DelegateProxySpec extends Specification {
         expect:
         new DelegateProxy('T').toString().contains('T')
     }
-}
 
+    def "call forwards to InvokerHelper when target is not a Map with call closure"() {
+        given:
+        def target = new Object() {
+            def call(Object... args) { "called-with-${args}" }
+        }
+
+        when:
+        def proxy = new DelegateProxy(target)
+        def result = proxy.call(1, 2, 3)
+
+        then:
+        result == "called-with-[1, 2, 3]"
+    }
+
+    def "doCall forwards to InvokerHelper when target is not a Map with doCall closure"() {
+        given:
+        def target = new Object() {
+            def doCall(Object... args) { "doCalled-with-${args}" }
+        }
+
+        when:
+        def proxy = new DelegateProxy(target)
+        def result = proxy.doCall('a', 'b')
+
+        then:
+        result == "doCalled-with-[a, b]"
+    }
+
+    def "invokeMethod forwards to Map closure when target is Map with matching closure"() {
+        given:
+        def target = [
+            testMethod: { Object... args -> "map-closure-called-with-${args}" }
+        ] as Object
+
+        when:
+        def proxy = new DelegateProxy(target)
+        def result = proxy.invokeMethod('testMethod', ['x', 'y'] as Object[])
+
+        then:
+        result == "map-closure-called-with-[x, y]"
+    }
+}

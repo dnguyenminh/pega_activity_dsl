@@ -37,7 +37,16 @@ class DelegateProxy {
 
         // If target is a Map with a matching closure, invoke it.
         if (target instanceof Map && target.containsKey(name) && target.get(name) instanceof Closure) {
-            return target.get(name).call(*arguments)
+            def clos = (Closure)target.get(name)
+            // Rehydrate closure with the map as delegate to avoid falling through to global invokeMethod hooks.
+            def safe = clos.rehydrate(target, clos.owner, clos.thisObject)
+            safe.resolveStrategy = Closure.DELEGATE_FIRST
+            try {
+                return safe.call(*arguments)
+            } catch (MissingMethodException e) {
+                // Fall back to invoking the method directly on the target if closure dispatch fails.
+                return org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(target, name, arguments)
+            }
         }
 
         // Otherwise, attempt to invoke the method directly on the target.

@@ -6,7 +6,7 @@ package com.pega.pegarules.pub
  */
 class PRException extends Exception {
     PRException() { super() }
-    PRException(String m) { super(m) }
+    PRException(String m) { super((String)m) }
     PRException(String m, Throwable t) { super(m, t) }
 }
 
@@ -17,24 +17,24 @@ class PRInterruptedException extends InterruptedException {
 
 class PRRuntimeException extends RuntimeException {
     PRRuntimeException() { super() }
-    PRRuntimeException(String m) { super(m) }
+    PRRuntimeException(String m) { super((String)m) }
     PRRuntimeException(String m, Throwable t) { super(m, t) }
 }
 
 class PRRuntimeError extends Error {
     PRRuntimeError() { super() }
-    PRRuntimeError(String m) { super(m) }
+    PRRuntimeError(String m) { super((String)m) }
     PRRuntimeError(String m, Throwable t) { super(m, t) }
 }
 
 class TamperedRequestException extends Exception {
     TamperedRequestException() { super() }
-    TamperedRequestException(String m) { super(m) }
+    TamperedRequestException(String m) { super((String)m) }
 }
 
 class QueueProcessorRegistrationFailedException extends Exception {
     QueueProcessorRegistrationFailedException() { super() }
-    QueueProcessorRegistrationFailedException(String m) { super(m) }
+    QueueProcessorRegistrationFailedException(String m) { super((String)m) }
 }
 
 class PassGen {

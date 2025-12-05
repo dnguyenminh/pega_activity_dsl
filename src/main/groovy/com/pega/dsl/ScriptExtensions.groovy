@@ -25,6 +25,29 @@ class ScriptExtensions {
 
         // Make script-level invoke fallback to DSL too (use Object[] signature for proper dispatch)
         scriptMeta.invokeMethod = { String name, Object[] args ->
+            // If delegate is a DelegateProxy, avoid re-entering ScriptExtensions hooks by invoking
+            // the proxy's underlying target directly via reflection. This prevents recursive
+            // interception while still allowing the real target to handle the call.
+            if (delegate instanceof com.pega.dsl.DelegateProxy) {
+                try {
+                    def f = delegate.getClass().getDeclaredField('target')
+                    f.setAccessible(true)
+                    def realTarget = f.get(delegate)
+                    // If the real target is a Map with a closure for this name, invoke it directly
+                    // to emulate DelegateProxy's Map-closure behavior without calling delegate.invokeMethod.
+                    if (realTarget instanceof Map && realTarget.containsKey(name) && realTarget.get(name) instanceof Closure) {
+                        def clos = (Closure) realTarget.get(name)
+                        def safe = clos.rehydrate(realTarget, clos.owner, clos.thisObject)
+                        safe.resolveStrategy = Closure.DELEGATE_FIRST
+                        return safe.call(*args)
+                    }
+                    def mm = realTarget?.metaClass?.getMetaMethod(name, args)
+                    if (mm != null) {
+                        return mm.invoke(realTarget, args as Object[])
+                    }
+                } catch (ignored) { }
+                // No meta-method found on the real target; fall through to the DSL or MissingMethodException.
+            }
             // Forward only known DSL entrypoints to avoid intercepting normal instance dispatch.
             if (DSL_METHODS.contains(name)) {
                 try { return com.pega.dsl.PegaDeveloperUtilitiesDsl."${name}"(*args) }
@@ -53,6 +76,29 @@ class ScriptExtensions {
         // Forward unknown method resolution on instances to the DSL as a fallback.
         // Use Object[] to match Groovy's invokeMethod signature at runtime.
         objectMeta.invokeMethod = { String name, Object[] args ->
+            // If delegate is a DelegateProxy, avoid re-entering ScriptExtensions hooks by invoking
+            // the proxy's underlying target directly via reflection. This prevents recursive
+            // interception while still allowing the real target to handle the call.
+            if (delegate instanceof com.pega.dsl.DelegateProxy) {
+                try {
+                    def f = delegate.getClass().getDeclaredField('target')
+                    f.setAccessible(true)
+                    def realTarget = f.get(delegate)
+                    // If the real target is a Map with a closure for this name, invoke it directly
+                    // to emulate DelegateProxy's Map-closure behavior without calling delegate.invokeMethod.
+                    if (realTarget instanceof Map && realTarget.containsKey(name) && realTarget.get(name) instanceof Closure) {
+                        def clos = (Closure) realTarget.get(name)
+                        def safe = clos.rehydrate(realTarget, clos.owner, clos.thisObject)
+                        safe.resolveStrategy = Closure.DELEGATE_FIRST
+                        return safe.call(*args)
+                    }
+                    def mm = realTarget?.metaClass?.getMetaMethod(name, args)
+                    if (mm != null) {
+                        return mm.invoke(realTarget, args as Object[])
+                    }
+                } catch (ignored) { }
+                // No meta-method found on the real target; continue normal dispatch below.
+            }
             // Only forward a known DSL entrypoint; otherwise attempt normal meta-method dispatch.
             if (DSL_METHODS.contains(name)) {
                 try { return com.pega.dsl.PegaDeveloperUtilitiesDsl."${name}"(*args) }
@@ -82,6 +128,29 @@ class ScriptExtensions {
         // to ensure unqualified calls like application(...) inside specs resolve.
         if (specMeta != null) {
             specMeta.invokeMethod = { String name, Object[] args ->
+                // If delegate is a DelegateProxy, avoid re-entering ScriptExtensions hooks by invoking
+                // the proxy's underlying target directly via reflection. This prevents recursive
+                // interception while still allowing the real target to handle the call.
+                if (delegate instanceof com.pega.dsl.DelegateProxy) {
+                    try {
+                        def f = delegate.getClass().getDeclaredField('target')
+                        f.setAccessible(true)
+                        def realTarget = f.get(delegate)
+                        // If the real target is a Map with a closure for this name, invoke it directly
+                        // to emulate DelegateProxy's Map-closure behavior without calling delegate.invokeMethod.
+                        if (realTarget instanceof Map && realTarget.containsKey(name) && realTarget.get(name) instanceof Closure) {
+                            def clos = (Closure) realTarget.get(name)
+                            def safe = clos.rehydrate(realTarget, clos.owner, clos.thisObject)
+                            safe.resolveStrategy = Closure.DELEGATE_FIRST
+                            return safe.call(*args)
+                        }
+                        def mm = realTarget?.metaClass?.getMetaMethod(name, args)
+                        if (mm != null) {
+                            return mm.invoke(realTarget, args as Object[])
+                        }
+                    } catch (ignored) { }
+                    // No meta-method found on the real target; continue normal dispatch below.
+                }
                 // Allow known DSL entrypoints to be called unqualified inside specs.
                 if (DSL_METHODS.contains(name)) {
                     try { return com.pega.dsl.PegaDeveloperUtilitiesDsl."${name}"(*args) }

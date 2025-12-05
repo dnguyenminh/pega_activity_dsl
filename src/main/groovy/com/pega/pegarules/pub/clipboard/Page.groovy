@@ -12,18 +12,7 @@ class Page extends SimpleClipboardPage implements ClipboardPage {
     Page(Object v = null) {
         super()
         if (v instanceof ClipboardPage) {
-            def src = (ClipboardPage)v
-            src.entrySet().each { entry ->
-                def key = entry.getKey()
-                def val = null
-                // Prefer using AbstractClipboardPage.getPropertyObject when available to obtain normalized values
-                if (src instanceof AbstractClipboardPage) {
-                    val = ((AbstractClipboardPage)src).getPropertyObject(key)
-                } else {
-                    try { val = src.getProperty(key)?.getPropertyValue() } catch(Exception ignored) { val = entry.getValue() }
-                }
-                this.putAt(key, val)
-            }
+            copyFromClipboardPageSafe((ClipboardPage)v)
         } else if (v instanceof Map) {
             this.putAll(v)
         }
@@ -40,19 +29,17 @@ class Page extends SimpleClipboardPage implements ClipboardPage {
     Page(String name, Object v, ClipboardPropertyType type = ClipboardPropertyType.PAGE) { // 'type' parameter is now unused.
         super()
         try {
-            if (v instanceof Map) {
+            if (v instanceof ClipboardPage) {
+                copyFromClipboardPageSafe((ClipboardPage)v)
+            } else if (v instanceof Map) {
                 this.putAll((Map)v)
             } else if (v instanceof List) {
                 // Each element in list may be a Map or ClipboardPage descriptor
                 ((List)v).eachWithIndex { e, idx ->
-                    if (e instanceof Map) this.putAll((Map)e)
-                    else if (e instanceof ClipboardPage) {
-                        def src = (ClipboardPage)e
-                        src.entrySet().each { entry ->
-                            def key = entry.getKey()
-                            def val = (src instanceof AbstractClipboardPage) ? ((AbstractClipboardPage)src).getPropertyObject(key) : (src.getProperty(key)?.getPropertyValue() ?: entry.getValue())
-                            this.putAt(key, val)
-                        }
+                    if (e instanceof ClipboardPage) {
+                        copyFromClipboardPageSafe((ClipboardPage)e)
+                    } else if (e instanceof Map) {
+                        this.putAll((Map)e)
                     } else {
                         // raw values appended to 'items'
                         def existing = this.getPropertyObject("items")
@@ -61,13 +48,6 @@ class Page extends SimpleClipboardPage implements ClipboardPage {
                         this.putAt("items", existing)
                     }
                 }
-            } else if (v instanceof ClipboardPage) {
-                def src = (ClipboardPage)v
-                src.entrySet().each { entry ->
-                    def key = entry.getKey()
-                    def val = (src instanceof AbstractClipboardPage) ? ((AbstractClipboardPage)src).getPropertyObject(key) : (src.getProperty(key)?.getPropertyValue() ?: entry.getValue())
-                    this.putAt(key, val)
-                }
             }
         } catch(Exception ignored) {}
         this.pageName = name
@@ -75,14 +55,7 @@ class Page extends SimpleClipboardPage implements ClipboardPage {
 
     Page(ClipboardPage p) {
         super()
-        if (p != null) {
-            def src = (ClipboardPage)p
-            src.entrySet().each { entry ->
-                def key = entry.getKey()
-                def val = (src instanceof AbstractClipboardPage) ? ((AbstractClipboardPage)src).getPropertyObject(key) : (src.getProperty(key)?.getPropertyValue() ?: entry.getValue())
-                this.putAt(key, val)
-            }
-        }
+        copyFromClipboardPageSafe(p)
     }
 
     Page(String name, ClipboardPage p) {
@@ -93,4 +66,27 @@ class Page extends SimpleClipboardPage implements ClipboardPage {
             }
         }
         this.pageName = name
-    }}
+    }
+
+    private void copyFromClipboardPageSafe(ClipboardPage src) {
+        if (src == null) {
+            return
+        }
+
+        src.entrySet().each { entry ->
+            def key = entry.getKey()
+            def val
+            if (src instanceof AbstractClipboardPage) {
+                val = ((AbstractClipboardPage)src).getPropertyObject(key)
+            } else {
+                try {
+                    def propertyVal = src.getProperty(key)?.getPropertyValue()
+                    val = propertyVal ?: entry.getValue()
+                } catch(Exception ignored) {
+                    val = entry.getValue()
+                }
+            }
+            this.putAt(key, val)
+        }
+    }
+}
