@@ -62,6 +62,54 @@ class BaseClassSpec extends Specification {
     (a.getPropertyObject('pxFlowCount') == 0) || (a.getPropertyObject('pxFlowCount') == null)
     }
 
+    def "explicit Map constructor overlays provided entries"() {
+        when:
+        def page = new BaseClass((Map)[pxInsName: 'INS-123', customField: 'abc'])
+
+        then:
+        page.getAt('pxInsName') == 'INS-123'
+        page.getAt('customField') == 'abc'
+        page.getAt('pxObjClass') == '@baseclass'
+    }
+
+    def "explicit Map constructor handles null map"() {
+        when:
+        def page = new BaseClass((Map)null)
+
+        then:
+        page.getAt('pxObjClass') == '@baseclass'
+    }
+
+    def "explicit List constructor processes maps pages properties and raw values"() {
+        given:
+        def nestedPage = new Page([nestedKey: 'nestedValue'])
+        def property = new SimpleClipboardProperty('flag', 'yes')
+        def descriptors = [
+            [pxInsName: 'LIST-123'],
+            nestedPage,
+            property,
+            99
+        ]
+
+        when:
+        def page = new BaseClass((List)descriptors)
+
+        then:
+        page.getAt('pxInsName') == 'LIST-123'
+        page.getAt('nestedKey') == 'nestedValue'
+        page.getAt('item2') == 'yes'
+        page.getAt('items') instanceof List
+        page.getAt('items').contains(99)
+    }
+
+    def "explicit List constructor handles null list"() {
+        when:
+        def page = new BaseClass((List)null)
+
+        then:
+        page.getAt('pxObjClass') == '@baseclass'
+    }
+
     def "propertyNames returns all standard base class property names"() {
         when:
         def names = BaseClass.propertyNames()
