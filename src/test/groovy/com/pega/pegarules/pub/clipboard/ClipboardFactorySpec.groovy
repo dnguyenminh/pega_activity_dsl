@@ -49,6 +49,23 @@ class ClipboardFactorySpec extends Specification {
         pl.getPropertyValue().isEmpty()
     }
 
+    def "newPageList preserves clipboard pages and converts list descriptors"() {
+        given:
+        def existing = new Page([alpha: 'A'])
+        def listDescriptor = [[beta: 'B']]
+
+        when:
+        def pl = ClipboardFactory.newPageList([existing, listDescriptor, 'tail'])
+        def values = pl.getPropertyValue()
+
+        then:
+        values.size() == 3
+        values[0].is(existing)
+        values[1] instanceof SimpleClipboardPage
+        values[1].getAt('beta') == 'B'
+        values[2] == 'tail'
+    }
+
     def "newProperty returns SimpleClipboardProperty with name and type"() {
         when:
         def prop = ClipboardFactory.newProperty('amt', 5)

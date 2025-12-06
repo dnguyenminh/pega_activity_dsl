@@ -7,7 +7,7 @@ class Ruleset extends Rule {
     Ruleset() { this.type = 'Ruleset' }
 
     def version(String v) {
-        super.version(v)
+        super.setVersion(v)
         return this
     }
 

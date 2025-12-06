@@ -50,4 +50,23 @@ class PageGroupSpec extends Specification {
         pageGroup.getString("page1") == "value1"
         pageGroup.getString("page2") == "value2"
     }
+
+    def "map constructor stores clipboard constructs verbatim"() {
+        given:
+        def nestedPage = new SimpleClipboardPage([alpha: 'A'])
+        def nestedProperty = new SimpleClipboardProperty('beta', new Page([beta: 'B']))
+        def payload = [pageEntry: nestedPage, propertyEntry: nestedProperty, scalarEntry: 'value']
+
+        when:
+        def group = new PageGroup(payload)
+
+        then:
+        def entrySet = group.entrySet()
+        def pageEntryRecord = entrySet.find { it.key == 'pageEntry' }
+        pageEntryRecord.value instanceof Page
+        pageEntryRecord.value.getString('alpha') == 'A'
+        entrySet.find { it.key == 'propertyEntry' }.value.is(nestedProperty)
+        group.getPropertyObject('pageEntry').alpha == 'A'
+        group.getString('scalarEntry') == 'value'
+    }
 }

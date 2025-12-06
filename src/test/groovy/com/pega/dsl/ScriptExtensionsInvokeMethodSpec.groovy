@@ -151,6 +151,18 @@ class ScriptExtensionsInvokeMethodSpec extends Specification {
         result == 'script-value'
     }
 
+    def "script meta delegate proxy uses real target meta methods"() {
+        given:
+        def scriptMeta = GroovySystem.metaClassRegistry.getMetaClass(Script)
+        def proxy = new DelegateProxy(new ProxyPingTarget('script'))
+
+        when:
+        def result = scriptMeta.invokeMethod(proxy, 'ping', ['alpha'] as Object[])
+
+        then:
+        result == 'script-alpha'
+    }
+
     def "specification meta invokeMethod forwards DSL flow"() {
         when:
         def flow = this.invokeMethod('flow', ['spec_flow_app', { }] as Object[])
@@ -192,6 +204,17 @@ class ScriptExtensionsInvokeMethodSpec extends Specification {
         result == 'spec-spec'
     }
 
+    def "specification meta delegate proxy uses real target meta methods"() {
+        given:
+        def proxy = new DelegateProxy(new ProxyPingTarget('spec'))
+
+        when:
+        def result = Specification.metaClass.invokeMethod(proxy, 'ping', ['beta'] as Object[])
+
+        then:
+        result == 'spec-beta'
+    }
+
     def "object meta methodMissing surfaces MissingMethodException for invalid DSL usage"() {
         when:
         objectMeta().methodMissing(new Object(), 'flow', [] as Object[])
@@ -213,5 +236,15 @@ class ScriptExtensionsInvokeMethodSpec extends Specification {
 
     private static class TestSpecification extends Specification {
         String ping(String value) { "spec-${value}" }
+    }
+
+    private static class ProxyPingTarget {
+        private final String prefix
+
+        ProxyPingTarget(String prefix) {
+            this.prefix = prefix
+        }
+
+        String ping(String value) { "${prefix}-${value}" }
     }
 }

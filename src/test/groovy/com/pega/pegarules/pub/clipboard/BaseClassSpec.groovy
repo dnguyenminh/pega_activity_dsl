@@ -2,6 +2,8 @@ package com.pega.pegarules.pub.clipboard
 
 import spock.lang.Specification
 
+import java.util.LinkedHashMap
+
 class BaseClassSpec extends Specification {
 
     def "copyStandardProps returns independent copy with expected keys"() {
@@ -70,6 +72,32 @@ class BaseClassSpec extends Specification {
         page.getAt('pxInsName') == 'INS-123'
         page.getAt('customField') == 'abc'
         page.getAt('pxObjClass') == '@baseclass'
+    }
+
+    def "map constructor unwraps nested clipboard constructs"() {
+        given:
+        def nestedMap = [alpha: 'A']
+        def nestedPage = new Page([beta: 'B'])
+        def nestedProperty = new SimpleClipboardProperty(new SimpleClipboardProperty(new Page([gamma: 'G'])))
+        def simplePage = new SimpleClipboardPage([delta: 'D'])
+
+        when:
+        def page = new BaseClass((Map)[
+            fromMap: nestedMap,
+            fromPage: nestedPage,
+            fromProperty: nestedProperty,
+            fromSimplePage: simplePage
+        ])
+
+        then:
+        page.getAt('fromMap') instanceof SimpleClipboardPage
+        page.getAt('fromMap').getAt('alpha') == 'A'
+        page.getAt('fromPage') instanceof SimpleClipboardPage
+        page.getAt('fromPage').getAt('beta') == 'B'
+        page.getAt('fromProperty') instanceof SimpleClipboardPage
+        page.getAt('fromProperty').getAt('gamma') == 'G'
+        page.getAt('fromSimplePage') instanceof SimpleClipboardPage
+        page.getAt('fromSimplePage').getAt('delta') == 'D'
     }
 
     def "explicit Map constructor handles null map"() {
@@ -258,5 +286,88 @@ class BaseClassSpec extends Specification {
         // Restore original map
         BaseClass.STANDARD_BASECLASS_PROPS.clear()
         BaseClass.STANDARD_BASECLASS_PROPS.putAll(originalProps)
+    }
+
+    def "ensureBasePropsPresent keeps whitespace when default is null"() {
+        given:
+        def page = new BaseClass()
+        page.putAt('pzInsKey', '   ')
+
+        when:
+        def method = BaseClass.class.getDeclaredMethod('ensureBasePropsPresent')
+        method.setAccessible(true)
+        method.invoke(page)
+
+        then:
+        page.getPropertyObject('pzInsKey') == '   '
+    }
+
+    def "map constructor invoked via reflection normalizes clipboard-rich payload"() {
+        given:
+        def ctor = BaseClass.class.getDeclaredConstructor(Map)
+        def payload = new LinkedHashMap()
+        payload.put(123L, 'numeric')
+        payload.put('child', new Page([alpha: 'A']))
+        payload.put('property', new SimpleClipboardProperty('wrapper', [beta: 'B']))
+        payload.put(null, 'nil-value')
+
+        when:
+        def page = (BaseClass) ctor.newInstance(payload)
+
+        then:
+        page.getAt('123') == 'numeric'
+        page.getAt('child') instanceof SimpleClipboardPage
+        page.getAt('child').getAt('alpha') == 'A'
+        page.getAt('property') instanceof SimpleClipboardPage
+        page.getAt('property').getAt('beta') == 'B'
+        page.getAt((Object) null) == 'nil-value'
+    }
+
+    def "map constructor via reflection accepts null argument"() {
+        given:
+        def ctor = BaseClass.class.getDeclaredConstructor(Map)
+
+        when:
+        def page = (BaseClass) ctor.newInstance([null] as Object[])
+
+        then:
+        page.getAt('pxObjClass') == '@baseclass'
+        page.getAt('items') == null
+    }
+
+    def "list constructor via reflection processes mixed descriptor types"() {
+        given:
+        def ctor = BaseClass.class.getDeclaredConstructor(List)
+        def nestedPage = new SimpleClipboardPage([delta: 'D'])
+        def property = new SimpleClipboardProperty('flag', new Page([theta: 'T']))
+        def descriptors = [
+            [alpha: 'A'],
+            nestedPage,
+            property,
+            'tail-item'
+        ]
+
+        when:
+        def page = (BaseClass) ctor.newInstance(descriptors)
+
+        then:
+        page.getAt('alpha') == 'A'
+        page.getAt('delta') == 'D'
+        page.getAt('item2') instanceof SimpleClipboardPage
+        page.getAt('item2').getAt('theta') == 'T'
+        page.getAt('items') instanceof List
+        page.getAt('items').contains('tail-item')
+    }
+
+    def "list constructor via reflection accepts null argument"() {
+        given:
+        def ctor = BaseClass.class.getDeclaredConstructor(List)
+
+        when:
+        def page = (BaseClass) ctor.newInstance([null] as Object[])
+
+        then:
+        page.getAt('pxObjClass') == '@baseclass'
+        page.getAt('items') == null
     }
 }

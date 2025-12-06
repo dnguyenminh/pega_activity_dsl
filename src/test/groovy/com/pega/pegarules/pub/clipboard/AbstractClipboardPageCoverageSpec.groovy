@@ -62,6 +62,21 @@ class AbstractClipboardPageCoverageSpec extends Specification {
         page['y'].getPropertyObject('b') == 2
     }
 
+    def "list constructor copies generic ClipboardPage descriptors"() {
+        given:
+        def entry = new AbstractMap.SimpleEntry('fromPage', 'copied')
+        def foreignPage = Stub(ClipboardPage) {
+            entrySet() >> { [entry] as Set }
+            getProperty(_) >> { null }
+        }
+
+        when:
+        def page = new SimpleClipboardPage([foreignPage])
+
+        then:
+        page.getAt('fromPage') == 'copied'
+    }
+
     def "replace copies from another AbstractClipboardPage and clears existing"() {
         given:
         def src = new SimpleClipboardPage()
@@ -113,6 +128,17 @@ class AbstractClipboardPageCoverageSpec extends Specification {
         dest.getString('fresh') == 'value'
         dest.getPropertyObject('mapProp') instanceof ClipboardProperty
         dest.getAt('mapProp').getPropertyObject('inner') == 5
+    }
+
+    def "replace ignores null sources"() {
+        given:
+        def page = new SimpleClipboardPage([alpha: 'A'])
+
+        when:
+        page.replace(null)
+
+        then:
+        page.isEmpty()
     }
 
     def "_storeValue clones ClipboardPage inputs to avoid aliasing"() {

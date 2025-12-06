@@ -105,6 +105,29 @@ class PageCoverageTest extends Specification {
         page.isClipboardPage() == true
     }
 
+    def "Page Map constructor normalizes null keys and clipboard values"() {
+        given:
+        def nestedPage = new Page([nestedKey: 'nestedVal'])
+        def wrappedProp = new SimpleClipboardProperty('wrapped', [alpha: 'A'])
+        def map = [
+            (null): 'nil-value',
+            42: 'answer',
+            nestedEntry: nestedPage,
+            propertyEntry: wrappedProp
+        ]
+
+        when:
+        def page = new Page(map)
+
+        then:
+        page.getAt(null) == 'nil-value'
+        page.getAt('42') == 'answer'
+        page.getAt('nestedEntry') instanceof SimpleClipboardPage
+        page.getAt('nestedEntry').getAt('nestedKey') == 'nestedVal'
+        page.getAt('propertyEntry') instanceof SimpleClipboardPage
+        page.getAt('propertyEntry').getAt('alpha') == 'A'
+    }
+
     def "Page List constructor with null"() {
         when:
         def page = new Page((List)null)
@@ -192,6 +215,30 @@ class PageCoverageTest extends Specification {
         items != null
         items.contains("standaloneItem")
         page.isClipboardPage() == true
+    }
+
+    def "Page List constructor generates sequential item keys for ClipboardProperty descriptors"() {
+        given:
+        def propertyPage = new SimpleClipboardProperty('first', new Page([alpha: 'A']))
+        def mapProperty = new SimpleClipboardProperty('second', [beta: 'B'])
+        def list = [
+            [directKey: 'directValue'],
+            propertyPage,
+            mapProperty,
+            'tail'
+        ]
+
+        when:
+        def page = new Page(list)
+
+        then:
+        page.getAt('directKey') == 'directValue'
+        page.getAt('item1') instanceof SimpleClipboardPage
+        page.getAt('item1').getAt('alpha') == 'A'
+        page.getAt('item2') instanceof SimpleClipboardPage
+        page.getAt('item2').getAt('beta') == 'B'
+        page.getAt('items') instanceof List
+        page.getAt('items').contains('tail')
     }
 
     def "Page String constructor with null name and null value"() {

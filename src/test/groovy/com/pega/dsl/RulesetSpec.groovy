@@ -31,4 +31,33 @@ class RulesetSpec extends Specification {
         unknown instanceof Rule
         rs.rules.containsAll(['P1','F1','U1'])
     }
+
+    def "rule creates section via builder"() {
+        given:
+        def rs = new Ruleset()
+
+        when:
+        def section = rs.rule('section', 'S1') {
+            freeform()
+        }
+
+        then:
+        section instanceof Section
+        section.layoutType == 'Freeform'
+        rs.rules.contains('S1')
+    }
+
+    def "version helpers delegate to base rule"() {
+        given:
+        def rs = new Ruleset()
+
+        when:
+        def chained = rs.version('01-01-01')
+        def chainedSetter = rs.setVersion('02-01-01')
+
+        then:
+        chained.is(rs)
+        chainedSetter.is(rs)
+        rs.version == '02-01-01'
+    }
 }

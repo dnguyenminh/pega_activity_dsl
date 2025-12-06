@@ -122,6 +122,52 @@ class DelegateProxySpec extends Specification {
         target.@calls == ['size']
     }
 
+    def "invokeMethod normalizes non-array arguments into Object[]"() {
+        given:
+        def target = new ArgumentCaptureTarget()
+        def proxy = new DelegateProxy(target)
+
+        when:
+        def result = proxy.invokeMethod('record', 'alpha')
+
+        then:
+        result == 'size:1'
+        target.capturedArgs == [['alpha']]
+    }
+
+    def "invokeMethod treats null arguments as an empty array"() {
+        given:
+        def target = new ArgumentCaptureTarget()
+        def proxy = new DelegateProxy(target)
+
+        when:
+        def result = proxy.invokeMethod('zero', null)
+
+        then:
+        result == 'zero'
+        target.zeroCallCount == 1
+    }
+
+    def "map entries that are not closures fall back to real methods"() {
+        given:
+        def target = new ProxyFriendlyMap()
+        target['size'] = 42 // ensure containsKey path hits but closure guard fails
+
+        and:
+        def proxy = new DelegateProxy(target)
+        def method = DelegateProxy.class.getDeclaredMethod('invokeMethod', String, Object)
+        method.accessible = true
+
+        when:
+        method.invoke(proxy, 'size', [] as Object[])
+
+        then:
+        def ex = thrown(InvocationTargetException)
+        ex.cause instanceof UnsupportedOperationException
+        ex.cause.message == 'fallback-invoked'
+        target.@calls == ['size']
+    }
+
     private static class ProxyFriendlyMap extends LinkedHashMap<Object, Object> {
         final List<String> calls = []
 
@@ -129,6 +175,21 @@ class DelegateProxySpec extends Specification {
         int size() {
             calls << 'size'
             throw new UnsupportedOperationException('fallback-invoked')
+        }
+    }
+
+    private static class ArgumentCaptureTarget {
+        final List<List<Object>> capturedArgs = []
+        int zeroCallCount = 0
+
+        def record(List args) {
+            capturedArgs << (args ?: [])
+            "size:${args?.size() ?: 0}"
+        }
+
+        def zero() {
+            zeroCallCount++
+            'zero'
         }
     }
 }
