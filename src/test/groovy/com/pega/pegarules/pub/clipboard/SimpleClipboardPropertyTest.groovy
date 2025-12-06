@@ -399,6 +399,69 @@ class SimpleClipboardPropertyTest extends Specification {
         new SimpleClipboardProperty('invalid').getDoubleValue() == 0.0d
     }
 
+    def "iterator over map entries produces Page instances"() {
+        given:
+        def prop = new SimpleClipboardProperty([first: [alpha: 1], second: [beta: 2]])
+
+        when:
+        def results = prop.iterator().collect { it }
+
+        then:
+        results.size() == 2
+        results.every { it instanceof Page }
+        results[0].getString('alpha') == '1'
+        results[1].getString('beta') == '2'
+    }
+
+    def "remove by index is no-op when value is not a list"() {
+        given:
+        def prop = new SimpleClipboardProperty('single')
+
+        when:
+        prop.remove(0)
+
+        then:
+        prop.getStringValue() == 'single'
+    }
+
+    def "remove by key is no-op when value is not a map"() {
+        given:
+        def prop = new SimpleClipboardProperty(['a', 'b'])
+
+        when:
+        prop.remove('missing')
+
+        then:
+        prop.size() == 2
+    }
+
+    def "size returns zero when backing value is null"() {
+        expect:
+        new SimpleClipboardProperty().size() == 0
+    }
+
+    def "numeric conversions handle null values"() {
+        given:
+        def prop = new SimpleClipboardProperty(null)
+
+        expect:
+        prop.toDouble() == 0.0d
+        prop.toInteger() == 0
+    }
+
+    def "equals short circuits for identical reference"() {
+        given:
+        def prop = new SimpleClipboardProperty('value')
+
+        expect:
+        prop.equals(prop)
+    }
+
+    def "hashCode returns zero when property value is null"() {
+        expect:
+        new SimpleClipboardProperty(null).hashCode() == 0
+    }
+
     def "test getIntegerValue method"() {
         expect:
         new SimpleClipboardProperty('123').getIntegerValue() == 123

@@ -42,6 +42,19 @@ class PageListTest extends Specification {
         l[2].getString('f') == '6'
     }
 
+    def "converts nested list descriptors into SimpleClipboardPage instances"() {
+        when:
+        def nested = [[ [foo: 'bar'], [baz: 7] ]]
+        def pl = new PageList(nested)
+
+        then:
+        def value = pl.getPropertyValue()
+        value.size() == 1
+        value[0] instanceof Page
+        value[0].getString('foo') == 'bar'
+        value[0].getString('baz') == '7'
+    }
+
     def "null constructor produces empty list and raw values preserved"() {
         when:
         def pl1 = new PageList()
@@ -53,6 +66,15 @@ class PageListTest extends Specification {
         pl2.getPropertyValue().size() == 2
         pl2.getPropertyValue()[0] == 'raw'
         pl2.getPropertyValue()[1] instanceof Page
+    }
+
+    def "varargs constructor tolerates null array input"() {
+        when:
+        Object[] raw = null
+        def pl = new PageList(raw)
+
+        then:
+        pl.getPropertyValue().isEmpty()
     }
 
     def "iterator() returns Page instances"() {

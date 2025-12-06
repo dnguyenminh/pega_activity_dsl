@@ -1,5 +1,6 @@
 package com.pega.dsl
 
+import java.lang.reflect.InvocationTargetException
 import spock.lang.Specification
 
 class DelegateProxySpec extends Specification {
@@ -98,5 +99,36 @@ class DelegateProxySpec extends Specification {
 
         then:
         result == "map-closure-called-with-[x, y]"
+    }
+
+    def "invokeMethod falls back to InvokerHelper when Map closure throws MissingMethodException"() {
+        given:
+        def target = new ProxyFriendlyMap()
+        target['alpha'] = 1
+        target['size'] = { Object... args -> throw new MissingMethodException('size', Map, args) }
+
+        and: 'call DelegateProxy.invokeMethod via reflection to bypass ScriptExtensions hooks'
+        def proxy = new DelegateProxy(target)
+        def method = DelegateProxy.class.getDeclaredMethod('invokeMethod', String, Object)
+        method.accessible = true
+
+        when:
+        method.invoke(proxy, 'size', [] as Object[])
+
+        then:
+        def ite = thrown(InvocationTargetException)
+        ite.cause instanceof UnsupportedOperationException
+        ite.cause.message == 'fallback-invoked'
+        target.@calls == ['size']
+    }
+
+    private static class ProxyFriendlyMap extends LinkedHashMap<Object, Object> {
+        final List<String> calls = []
+
+        @Override
+        int size() {
+            calls << 'size'
+            throw new UnsupportedOperationException('fallback-invoked')
+        }
     }
 }

@@ -205,6 +205,20 @@ class BaseClassSpec extends Specification {
         p.getPropertyObject('pxFlowCount') == 5
     }
 
+    def "ensureBasePropsPresent replaces whitespace-only pxObjClass with default"() {
+        given:
+        def page = new BaseClass()
+        page.putAt('pxObjClass', '   ')
+
+        when:
+        def method = BaseClass.class.getDeclaredMethod('ensureBasePropsPresent')
+        method.setAccessible(true)
+        method.invoke(page)
+
+        then:
+        page.getPropertyObject('pxObjClass') == '@baseclass'
+    }
+
     def "applyTo handles exceptions gracefully"() {
         given:
         def mockPage = Mock(ClipboardPage)
