@@ -1,11 +1,14 @@
 package com.pega.pegarules.pub.clipboard
 
+import groovy.transform.CompileStatic
+
 /**
  * PageList represents a Pega page-list property. It's implemented as a
  * ClipboardProperty (extends SimpleClipboardProperty) whose property value is
  * a List of ClipboardPage instances. The factory should return this object
  * for pxResults so callers can treat pxResults as a first-class PageList.
  */
+@CompileStatic
 class PageList extends SimpleClipboardProperty {
     PageList(List pages = null) {
         super()
@@ -22,6 +25,6 @@ class PageList extends SimpleClipboardProperty {
 
     // Convenience constructor to accept varargs for tests or callers
     PageList(Object... pages) {
-        this(pages as List)
+        this(pages == null ? null : pages.toList())
     }
 }

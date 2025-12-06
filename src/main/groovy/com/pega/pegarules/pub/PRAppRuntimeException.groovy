@@ -1,8 +1,11 @@
 package com.pega.pegarules.pub
 
+import groovy.transform.CompileStatic
+
 /**
  * Stub generated from Pega 8.4 javadocs.
  */
+@CompileStatic
 class PRAppRuntimeException extends RuntimeException {
     double reason
     String ruleSetName

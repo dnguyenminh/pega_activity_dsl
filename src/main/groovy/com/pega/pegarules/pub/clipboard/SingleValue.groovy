@@ -1,6 +1,9 @@
 package com.pega.pegarules.pub.clipboard
 
+import groovy.transform.CompileStatic
+
 /** Thin wrapper representing a single value clipboard property. */
+@CompileStatic
 class SingleValue extends SimpleClipboardProperty {
     // SingleValue(String v = null) {
     //     super(v)
